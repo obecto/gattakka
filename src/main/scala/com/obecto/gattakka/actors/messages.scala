@@ -1,5 +1,6 @@
 package com.obecto.actors
 import com.obecto.genetics._
+import com.obecto.operators._
 
 object messages {
   case class NewGeneration(generationId: Int)

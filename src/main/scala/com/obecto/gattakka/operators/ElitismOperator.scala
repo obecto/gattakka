@@ -1,12 +1,10 @@
 package com.obecto.operators
 import com.obecto.genetics._
 
-class ElitismOperator(elitePercentage: Float = 0.05f, rng: scala.util.Random = scala.util.Random) extends Operator {
+class ElitismOperator(selectionStrategy: SelectionStrategy, elitePercentage: Float = 0.05f) extends Operator {
   def apply(oldGeneration: Generation, newGeneration: Generation) : Unit = {
-    for(chromosome <- oldGeneration.chromosomes) {
-      if (rng.nextFloat() < elitePercentage) {
-        newGeneration.chromosomes += chromosome
-      }
-    }
+    val count = Math.round(oldGeneration.chromosomes.length * elitePercentage)
+    val selected = selectionStrategy.apply(oldGeneration, count)
+    newGeneration.chromosomes ++= selected
   }
 }
