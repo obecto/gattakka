@@ -4,8 +4,9 @@ import scala.math.BigInt
 trait Gene[T] extends Serializable {
   var value: T
   def size: Int
-  def asBinary: Array[Byte]
-  def fromBinary(from: Array[Byte]): Gene[T]
+  def toByteArray: Array[Byte]
+  // fromSize is the "parent" gene's size. It should be expected to remain constant
+  def fromByteArray(from: Array[Byte], fromSize: Int = size): Gene[T]
 }
 
 object BinaryGene {
@@ -16,17 +17,21 @@ object BinaryGene {
 
 class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
 
-  assert(size % 8 == 0, s"Size must be divisible by 8 (given: $size)")
+  val maxValue = (BigInt(1) << size) - 1
+  val maxValueDouble = maxValue.doubleValue
 
-  def asBigInt: BigInt = value
+  value = value & maxValue // Zero highest bits, just in case
+
+
+  def toBigInt: BigInt = value
   def asInt: Int = value.intValue
-  def asFloat: Float = value.floatValue / ((1 << size) - 1)
-  def asDouble: Double = value.doubleValue / ((1 << size) - 1)
+  def toFloat: Float = toDouble.toFloat
+  def toDouble: Double = (value.doubleValue / maxValueDouble)
 
-  def asBinary: Array[Byte] = {
+  def toByteArray: Array[Byte] = {
     val unpadded = value.toByteArray
     val padding = Array[Byte]().padTo(size / 8 - unpadded.length, 0.toByte)
     padding ++ unpadded
   }
-  def fromBinary(from: Array[Byte]): BinaryGene = new BinaryGene(from.length * 8, BigInt(from))
+  def fromByteArray(from: Array[Byte], fromSize: Int = size): BinaryGene = new BinaryGene(fromSize, BigInt(from))
 }

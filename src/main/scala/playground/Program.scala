@@ -9,20 +9,21 @@ object RunGattakka extends App {
   val pipeline = new Pipeline(List(), 1000)
 
   // pipeline.addOperator(new OffspringOperator(new BinaryMutationStrategy(), new TruncationSelectionStrategy()))
+  pipeline.addOperator(new PrintOperator())
   pipeline.addOperator(new ElitismOperator(new TruncationSelectionStrategy()))
   pipeline.addOperator(new OffspringOperator(new BinaryMutationStrategy(0.01f), new RouletteWheelSelectionStrategy()))
 
   var generation = new Generation(0)
-  for (i <- 0 to pipeline.targetPopulationSize) {
+  for (i <- 0 until pipeline.targetPopulationSize) {
     generation.chromosomes += new Chromosome(Array[Gene[_]](
-      BinaryGene(16), BinaryGene(16)
+      BinaryGene(32), BinaryGene(32)
     ))
   }
 
   for (i <- 0 to 40) {
     for (chromosome <- generation.chromosomes) {
-      val x = chromosome.genes(0).asInstanceOf[BinaryGene].asDouble * 200 - 100
-      val y = chromosome.genes(1).asInstanceOf[BinaryGene].asDouble * 200 - 100
+      val x = chromosome.genes(0).asInstanceOf[BinaryGene].toDouble * 200 - 100
+      val y = chromosome.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
       val temp1 = Math.sin(Math.sqrt(x * x + y * y));
       val temp2 = 1 + 0.001 * (x * x + y * y);
       val result = 0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2);
