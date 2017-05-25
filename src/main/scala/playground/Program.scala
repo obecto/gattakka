@@ -33,11 +33,6 @@ object RunGattakka extends App {
 
     generation.resortChromosomes()
     generation.recomputeValues()
-
-    println(s"Generation: ${generation.sequentialId}\t| Max F: ${generation.maxFitness}\t| Min F: ${generation.minFitness}\t| Population: ${generation.chromosomes.length}")
-    // println(s"\tBest: ${generation.chromosomes(0).calculatedFitness}")
-    // println(s"\tBest: ${generation.chromosomes(0).genes(0).asInstanceOf[BinaryGene].asDouble * 200 - 100}, ${generation.chromosomes(0).genes(1).asInstanceOf[BinaryGene].asDouble * 200 - 100}")
-    // println(s"\tBest: ${generation.chromosomes(0).genes(0).value}, ${generation.chromosomes(0).genes(1).value}")
     generation = pipeline.apply(generation)
   }
 
