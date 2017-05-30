@@ -1,7 +1,6 @@
 package com.obecto.genetics
 
-case class GenetationDetails(
-  sequentialId: Int,
+case class PopulationStatistics(
   averageFitness: Float,
   minFitness: Float,
   maxFitness: Float,

@@ -6,41 +6,22 @@ import com.obecto.operators._
 import com.obecto.genetics._
 
 object RunGattakka extends App {
-  val pipeline = new Pipeline(List(), 1000)
+  val pipeline = new Pipeline(List(
+    new InitializationGenerator(() => {
+      new Chromosome(Array[Gene[_]](
+        BinaryGene(32), BinaryGene(32)
+      ))
+    }),
+    new BinaryMutationGenerator(1, new RouletteWheelSelectionStrategy(), 0.01f)
+  ))
 
   // pipeline.addOperator(new OffspringOperator(new BinaryMutationStrategy(), new TruncationSelectionStrategy()))
-  pipeline.addOperator(new PrintOperator())
-  pipeline.addOperator(new ElitismOperator(new TruncationSelectionStrategy()))
-  pipeline.addOperator(new OffspringOperator(new BinaryMutationStrategy(0.01f), new RouletteWheelSelectionStrategy()))
-
-  var generation = new Generation(0)
-  for (i <- 0 until pipeline.targetPopulationSize) {
-    generation.chromosomes += new Chromosome(Array[Gene[_]](
-      BinaryGene(32), BinaryGene(32)
-    ))
-  }
-
-  for (i <- 0 to 40) {
-    for (chromosome <- generation.chromosomes) {
-      val x = chromosome.genes(0).asInstanceOf[BinaryGene].toDouble * 200 - 100
-      val y = chromosome.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
-      val temp1 = Math.sin(Math.sqrt(x * x + y * y));
-      val temp2 = 1 + 0.001 * (x * x + y * y);
-      val result = 0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2);
-
-      chromosome.calculatedFitness = (1 - result).toFloat;
-    }
-
-    generation.resortChromosomes()
-    generation.recomputeValues()
-    generation = pipeline.apply(generation)
-  }
 
   // Create the 'helloakka' actor system
   val system = ActorSystem("gattakka")
 
   // Create the 'greeter' actor
-  val population = system.actorOf(Props[GeneticPopulationActor], "population")
+  val populationActor = system.actorOf(Props(classOf[GeneticPopulationActor], Props[EvaluatorActor], pipeline), "population")
 
   // Create an "actor-in-a-box"
   val inbox = Inbox.create(system)

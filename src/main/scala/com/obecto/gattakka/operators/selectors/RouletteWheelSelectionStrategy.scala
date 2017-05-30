@@ -2,7 +2,7 @@ package com.obecto.operators
 import com.obecto.genetics._
 
 class RouletteWheelSelectionStrategy(rng: scala.util.Random = scala.util.Random) extends SelectionStrategy {
-  def apply(from: Generation, count: Int): Seq[Chromosome] = {
+  def apply(from: Population, count: Int): Seq[Chromosome] = {
     (0 until count).map((a: Int) => {
       val selected: Double = from.totalFitness * rng.nextFloat()
       var reached: Double = 0.0
