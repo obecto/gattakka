@@ -1,29 +1,32 @@
 package com.obecto.actors
 import com.obecto.genetics._
 import com.obecto.operators._
+import akka.actor.{ ActorRef }
 
 object messages {
-  case class NewGeneration(generationId: Int)
+  case class NewPopulation(populationId: Int)
 
-  case object GetGeneration
-  case class GenerationResult(generation: GenetationDetails)
+  case object GetStatistics
+  case class StatisticsResult(population: PopulationStatistics)
 
-  case class ApplyPipeline(method: Function[Pipeline, Int])
+  case class GetEvolvedChromosomes(strategy: SelectionStrategy, amount: Int)
+  case class EvolvedChromosomesResult(chromosomes: Seq[Chromosome])
+
+  case class ChangePipeline(newPipeline: Pipeline)
+
+  case class KillIndividual(ref: ActorRef)
 
   case object StartGeneticAlgorithm
   case object StopGeneticAlgorithm
-  case class SetPopulationSize(size: Int)
+  case class SetTargetPopulationSize(size: Int, shouldKill: Boolean = false)
 
-  case class GetEvolvedChromosomes(amount: Int)
-  case class EvolvedChromosomesResult(chromosomes: Array[Int]) // TODO: switch to chromosome
 
-  object internal {
+  case class InitializeIndividual(chromosome: Chromosome, evaluator: ActorRef)
+  case object IndividualReady
 
-    case class InitializeIndividual(chromosome: Int, data: AnyRef) // TODO: switch to chromosome
-    case object IndividualReady
+  case class IntroduceIndividual(chromosome: Chromosome, individual: ActorRef)
 
-    case class GetFitness()
-    case class FitnessResult(result: Float)
+  case class GetEvaluatedFitnesses()
+  case class EvaluatedFitnessesResult(result: Map[ActorRef, Float])
 
-  }
 }

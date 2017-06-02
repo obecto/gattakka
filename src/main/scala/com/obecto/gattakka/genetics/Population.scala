@@ -1,5 +1,20 @@
 package com.obecto.genetics
 
+import scala.collection.mutable
+
+object Population {
+  def from(zippedIterable: Iterable[(Chromosome, Float)]): Population = {
+    val buffer = new mutable.ArrayBuffer[Chromosome]()
+
+    for ((chromosome, fitness) <- zippedIterable) {
+      if (chromosome != null) {
+        buffer += chromosome.withFitness(fitness)
+      }
+    }
+
+    new Population(buffer.toArray)
+  }
+}
 class Population(var chromosomes: Array[Chromosome] = Array[Chromosome]()) {
 
   var totalFitness: Double = 0.0

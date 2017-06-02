@@ -6,11 +6,11 @@ class Pipeline(val generators: List[ChromosomeGenerator] = List(), rng: scala.ut
 
   def withGenerator(generator: ChromosomeGenerator): Pipeline = new Pipeline(generators :+ generator)
 
-  def apply(currentPopulation: Population, requiredAmount: Long): TraversableOnce[Chromosome] = {
+  def apply(currentPopulation: Population, requiredAmount: Int): TraversableOnce[Chromosome] = {
     currentPopulation.recomputeValues()
     currentPopulation.resortChromosomes()
 
-    val usableGenerators = generators.filter((generator) => generator.parentCount < currentPopulation.chromosomes.size)
+    val usableGenerators = generators.filter((generator) => generator.parentCount <= currentPopulation.chromosomes.size)
     val totalWeigth = usableGenerators.foldLeft(0.0)((current, generator) => current + generator.weigth)
 
     val selected: Double = totalWeigth * rng.nextDouble()
@@ -20,10 +20,12 @@ class Pipeline(val generators: List[ChromosomeGenerator] = List(), rng: scala.ut
       (reached >= selected)
     }).getOrElse(usableGenerators.head)
 
-    val iterations: Long = Math.ceil(1.0 * requiredAmount / selectedGenerator.childCount).toLong
     val builder = TraversableOnce.OnceCanBuildFrom[Chromosome]()
-    for (i <- 1l to iterations) {
-      builder ++= selectedGenerator.apply(currentPopulation)
+    var accumulatedSize = 0
+    while (accumulatedSize < requiredAmount) {
+      val generated = selectedGenerator.apply(currentPopulation)
+      accumulatedSize = generated.size
+      builder ++= generated
     }
     builder.result
   }
