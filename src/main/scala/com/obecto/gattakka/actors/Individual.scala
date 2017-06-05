@@ -1,4 +1,4 @@
-package com.obecto.actors
+package com.obecto.gattakka.actors
 import akka.actor.{Actor}
 
 class IndividualActor extends Actor {

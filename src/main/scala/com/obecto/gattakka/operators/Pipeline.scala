@@ -1,5 +1,5 @@
-package com.obecto.operators
-import com.obecto.genetics._
+package com.obecto.gattakka.operators
+import com.obecto.gattakka.genetics._
 import scala.collection.{ TraversableOnce }
 
 class Pipeline(val generators: List[ChromosomeGenerator] = List(), rng: scala.util.Random = scala.util.Random) extends Serializable {
@@ -24,7 +24,7 @@ class Pipeline(val generators: List[ChromosomeGenerator] = List(), rng: scala.ut
     var accumulatedSize = 0
     while (accumulatedSize < requiredAmount) {
       val generated = selectedGenerator.apply(currentPopulation)
-      accumulatedSize = generated.size
+      accumulatedSize += generated.size
       builder ++= generated
     }
     builder.result

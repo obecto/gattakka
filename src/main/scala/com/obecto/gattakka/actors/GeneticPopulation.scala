@@ -1,7 +1,7 @@
-package com.obecto.actors
+package com.obecto.gattakka.actors
 import scala.collection.mutable
-import com.obecto.genetics.{ Chromosome, Population }
-import com.obecto.operators.{ Pipeline }
+import com.obecto.gattakka.genetics.{ Chromosome, Population }
+import com.obecto.gattakka.operators.{ Pipeline }
 import akka.actor.{ Actor, ActorRef, Props, Terminated }
 import akka.pattern.{ ask, pipe }
 import akka.util.{ Timeout }

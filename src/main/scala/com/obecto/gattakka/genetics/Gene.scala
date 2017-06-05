@@ -1,4 +1,4 @@
-package com.obecto.genetics
+package com.obecto.gattakka.genetics
 import scala.math.BigInt
 
 trait Gene[T] extends Serializable {

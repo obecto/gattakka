@@ -1,5 +1,5 @@
-package com.obecto.operators
-import com.obecto.genetics._
+package com.obecto.gattakka.operators
+import com.obecto.gattakka.genetics._
 
 class InitializationGenerator(initializer: () => Chromosome) extends ChromosomeGenerator {
 

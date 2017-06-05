@@ -1,6 +1,6 @@
-package com.obecto.actors
-import com.obecto.genetics._
-import com.obecto.operators._
+package com.obecto.gattakka.actors
+import com.obecto.gattakka.genetics._
+import com.obecto.gattakka.operators._
 import akka.actor.{ ActorRef }
 
 object messages {

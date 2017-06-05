@@ -1,9 +1,9 @@
 package playground
 import akka.actor.{ ActorSystem, Props, ActorRef }
 // import scala.concurrent.duration._
-import com.obecto.actors._
-import com.obecto.operators._
-import com.obecto.genetics._
+import com.obecto.gattakka.actors._
+import com.obecto.gattakka.operators._
+import com.obecto.gattakka.genetics._
 import scala.concurrent.duration._
 import scala.collection.mutable
 

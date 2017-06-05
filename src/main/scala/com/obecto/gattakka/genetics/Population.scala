@@ -1,4 +1,4 @@
-package com.obecto.genetics
+package com.obecto.gattakka.genetics
 
 import scala.collection.mutable
 
