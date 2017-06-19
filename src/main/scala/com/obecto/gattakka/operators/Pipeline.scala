@@ -2,7 +2,12 @@ package com.obecto.gattakka.operators
 import com.obecto.gattakka.genetics._
 import scala.collection.{ TraversableOnce }
 
+object Pipeline {
+  lazy val empty = new Pipeline()
+}
+
 class Pipeline(val generators: List[ChromosomeGenerator] = List(), rng: scala.util.Random = scala.util.Random) extends Serializable {
+
 
   def withGenerator(generator: ChromosomeGenerator): Pipeline = new Pipeline(generators :+ generator)
 

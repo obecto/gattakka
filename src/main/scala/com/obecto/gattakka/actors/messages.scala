@@ -2,31 +2,54 @@ package com.obecto.gattakka.actors
 import com.obecto.gattakka.genetics._
 import com.obecto.gattakka.operators._
 import akka.actor.{ ActorRef }
+import scala.concurrent.duration._
 
 object messages {
-  case class NewPopulation(populationId: Int)
+  object population {
+    case object StartGeneticAlgorithm
+    case object StopGeneticAlgorithm
 
-  case object GetStatistics
-  case class StatisticsResult(population: PopulationStatistics)
+    case class CreateIndividual(chromosome: Chromosome)
+    case class KillIndividual(chromosome: Chromosome)
 
-  case class GetEvolvedChromosomes(strategy: SelectionStrategy, amount: Int)
-  case class EvolvedChromosomesResult(chromosomes: Seq[Chromosome])
+    case class CreateIndividuals(chromosomes: TraversableOnce[Chromosome])
+    case class KillIndividuals(chromosomes: TraversableOnce[Chromosome])
 
-  case class ChangePipeline(newPipeline: Pipeline)
+    case class SelectIndividuals(strategy: SelectionStrategy, amount: Int)
+    case class SelectIndividualsPercent(strategy: SelectionStrategy, percent: Float)
+    case class IndividualsResult(individuals: Seq[Chromosome])
 
-  case class KillIndividual(ref: ActorRef)
+    case object GetPopulation
+    case class PopulationResult(population: Population)
 
-  case object StartGeneticAlgorithm
-  case object StopGeneticAlgorithm
-  case class SetTargetPopulationSize(size: Int, shouldKill: Boolean = false)
+    case object GetStatistics
+    case class StatisticsResult(statistics: PopulationStatistics)
 
+    case class SetTargetPopulationSize(size: Int, shouldKill: Boolean = false)
 
-  case class InitializeIndividual(chromosome: Chromosome, evaluator: ActorRef)
-  case object IndividualReady
+    case object PopulationSizeChangedEvent
+  }
 
-  case class IntroduceIndividual(chromosome: Chromosome, individual: ActorRef)
+  object evaluator {
+    case class GetEvaluatedPopulation()
+    case class EvaluatedPopulationResult(result: Population)
 
-  case class GetEvaluatedFitnesses()
-  case class EvaluatedFitnessesResult(result: Map[ActorRef, Float])
+    case class IntroduceIndividual(chromosome: Chromosome, individual: ActorRef)
+  }
 
+  object individual {
+    case class Initialize(chromosome: Chromosome, evaluator: ActorRef)
+    case object InitializeResult
+  }
+
+  object destructor {
+    case class SetParameters(strategy: SelectionStrategy, killPercentage: Float)
+    case class TrimPopulationSize(size: Int)
+    case object KillIndividuals
+  }
+
+  object creator {
+    case class SetPipeline(pipeline: Pipeline)
+    case class SetTargetPopulationSize(size: Int)
+  }
 }

@@ -7,37 +7,35 @@ import com.obecto.gattakka.genetics._
 import scala.concurrent.duration._
 import scala.collection.mutable
 
-case class FitnessResult(fitness: Float)
+case class FitnessResult(chromosome: Chromosome, fitness: Float)
 
 class CustomEvaluatorActor extends EvaluatorActor {
-  import messages._
+  import messages.evaluator._
 
-  val fitnesses = mutable.HashMap[ActorRef, Float]()
+  val fitnesses = mutable.HashMap[Chromosome, Float]()
 
   override def customReceive = {
-    case FitnessResult(fitness) =>
-      fitnesses(context.sender) = fitness
+    case FitnessResult(chromosome, fitness) =>
+      fitnesses(chromosome) = fitness
       context.stop(context.sender)
 
-    case GetEvaluatedFitnesses =>
-      context.sender ! EvaluatedFitnessesResult(fitnesses.toMap)
+    case GetEvaluatedPopulation =>
+      context.sender ! EvaluatedPopulationResult(Population.from(fitnesses.toMap))
   }
 }
 
-class CustomIndividualActor extends EvaluatorActor {
-  import messages._
-
-  val fitnesses = mutable.HashMap[ActorRef, Float]()
+class CustomIndividualActor extends IndividualActor {
+  import messages.individual._
 
   override def customReceive = {
-    case InitializeIndividual(chromosome, evaluator) =>
+    case Initialize(chromosome, evaluator) =>
         val x = chromosome.genes(0).asInstanceOf[BinaryGene].toDouble * 200 - 100
         val y = chromosome.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
         val temp1 = Math.sin(Math.sqrt(x * x + y * y));
         val temp2 = 1 + 0.001 * (x * x + y * y);
         val result = 0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2);
 
-        evaluator ! FitnessResult(result.toFloat)
+        evaluator ! FitnessResult(chromosome, result.toFloat)
 
   }
 }
@@ -83,8 +81,8 @@ object RunGattakka extends App {
       pipeline
     ), "population")
 
-  populationActor ! messages.SetTargetPopulationSize(10)
-  populationActor ! messages.StartGeneticAlgorithm
+  populationActor ! messages.population.SetTargetPopulationSize(10)
+  populationActor ! messages.population.StartGeneticAlgorithm
 
   import system.dispatcher
 
