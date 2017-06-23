@@ -15,7 +15,7 @@ object BinaryGene {
   }
 }
 
-class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
+case class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
 
   val maxValue = (BigInt(1) << size) - 1
   val maxValueDouble = maxValue.doubleValue

@@ -1,7 +1,6 @@
 package com.obecto.gattakka.actors
 
 import com.obecto.gattakka.operators._
-import com.obecto.gattakka.genetics._
 
 import akka.actor.{ Actor }
 import akka.pattern.{ ask }
@@ -25,23 +24,15 @@ class DestructionActor extends Actor {
       killPercentage = newKillPercentage
 
     case TrimPopulationSize(newSize) =>
-      // TODO: Should we support negative amounts?
-      context.parent.ask(population.SelectIndividuals(strategy, -newSize)) andThen {
-
-        case Success(population.IndividualsResult(individuals)) =>
-          context.parent ! population.KillIndividuals(individuals)
-
+      for (population.IndividualsResult(individuals) <- context.parent.ask(population.SelectIndividuals(strategy, - newSize))) {
+        context.parent ! population.KillIndividuals(individuals)
       }
 
 
     case KillIndividuals =>
-      context.parent.ask(population.SelectIndividualsPercent(strategy, killPercentage)) andThen {
-
-        case Success(population.IndividualsResult(individuals)) =>
-          context.parent ! population.KillIndividuals(individuals)
-
+      for (population.IndividualsResult(individuals) <- context.parent.ask(population.SelectIndividualsPercent(strategy, killPercentage))) {
+        context.parent ! population.KillIndividuals(individuals)
       }
-      //targetPopulationSize = newTargetPopulationSize
 
     case unrelatedMessage => println("Got a message: " + unrelatedMessage)
   }

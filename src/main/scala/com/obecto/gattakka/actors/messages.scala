@@ -2,15 +2,11 @@ package com.obecto.gattakka.actors
 import com.obecto.gattakka.genetics._
 import com.obecto.gattakka.operators._
 import akka.actor.{ ActorRef }
-import scala.concurrent.duration._
 
 object messages {
   object population {
     case object StartGeneticAlgorithm
     case object StopGeneticAlgorithm
-
-    case class CreateIndividual(chromosome: Chromosome)
-    case class KillIndividual(chromosome: Chromosome)
 
     case class CreateIndividuals(chromosomes: TraversableOnce[Chromosome])
     case class KillIndividuals(chromosomes: TraversableOnce[Chromosome])
@@ -25,7 +21,8 @@ object messages {
     case object GetStatistics
     case class StatisticsResult(statistics: PopulationStatistics)
 
-    case class SetTargetPopulationSize(size: Int, shouldKill: Boolean = false)
+    case object GetAliveCount
+    case class AliveCountResult(count: Int)
 
     case object PopulationSizeChangedEvent
   }
