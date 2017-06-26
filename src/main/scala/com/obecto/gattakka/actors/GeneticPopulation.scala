@@ -8,7 +8,6 @@ import akka.util.{ Timeout }
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.Future
-import scala.util.{ Success }
 
 object GeneticPopulationActor {
   def getProps(evaluatorProps: Props,
@@ -33,7 +32,6 @@ class GeneticPopulationActor(evaluatorProps: Props, individualProps: Props, crea
   case object Initialized extends IndividualState
 
 
-  var running = false
 
   val childChromosomes = mutable.HashMap[ActorRef, Chromosome]()
   val individualRefs = mutable.HashMap[Chromosome, IndividualRef]()
@@ -45,12 +43,6 @@ class GeneticPopulationActor(evaluatorProps: Props, individualProps: Props, crea
   var nextSequentialId = 0
 
   def receive = {
-    case StartGeneticAlgorithm =>
-      running = true
-
-    case StopGeneticAlgorithm =>
-      running = false
-
     case KillIndividuals(individuals) =>
       for (individual <- individuals) {
         if (individualRefs.contains(individual)) {

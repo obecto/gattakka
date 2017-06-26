@@ -5,9 +5,6 @@ import akka.actor.{ ActorRef }
 
 object messages {
   object population {
-    case object StartGeneticAlgorithm
-    case object StopGeneticAlgorithm
-
     case class CreateIndividuals(chromosomes: TraversableOnce[Chromosome])
     case class KillIndividuals(chromosomes: TraversableOnce[Chromosome])
 
@@ -46,7 +43,7 @@ object messages {
   }
 
   object creator {
-    case class SetPipeline(pipeline: Pipeline)
+    case class AddGenerator(generator: ChromosomeGenerator, weigth: Float = 1)
     case class SetTargetPopulationSize(size: Int)
   }
 }

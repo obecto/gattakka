@@ -6,7 +6,7 @@ import akka.actor.{ Actor }
 import akka.pattern.{ ask }
 import akka.util.{ Timeout }
 import scala.concurrent.duration._
-import scala.util.{ Success }
+import scala.util.Success
 
 
 class DestructionActor extends Actor {
