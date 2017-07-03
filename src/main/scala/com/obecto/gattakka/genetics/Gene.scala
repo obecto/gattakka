@@ -4,6 +4,8 @@ import scala.math.BigInt
 trait Gene[T] extends Serializable {
   var value: T
   def size: Int
+  def toFloat: Float = toDouble.toFloat
+  def toDouble: Double
   def toByteArray: Array[Byte]
   // fromSize is the "parent" gene's size. It should be expected to remain constant
   def fromByteArray(from: Array[Byte], fromSize: Int = size): Gene[T]
@@ -15,7 +17,7 @@ object BinaryGene {
   }
 }
 
-class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
+case class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
 
   val maxValue = (BigInt(1) << size) - 1
   val maxValueDouble = maxValue.doubleValue
@@ -25,8 +27,7 @@ class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
 
   def toBigInt: BigInt = value
   def asInt: Int = value.intValue
-  def toFloat: Float = toDouble.toFloat
-  def toDouble: Double = (value.doubleValue / maxValueDouble)
+  override def toDouble: Double = (value.doubleValue / maxValueDouble)
 
   def toByteArray: Array[Byte] = {
     val unpadded = value.toByteArray

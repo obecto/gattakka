@@ -1,12 +1,19 @@
 package com.obecto.gattakka.genetics
 
-class Chromosome(var genes: Seq[Gene[_]] = Array[Gene[_]]()) {
-  var calculatedFitness: Float = Float.NaN
+case class Chromosome(var genes: Seq[Gene[_]] = Array[Gene[_]]()) extends ChromosomeBase[Chromosome] {
+  override def getMutationRate(): Float = {
+    return 1f
+  }
 
-  def withFitness(newFitness: Float): Chromosome = {
+  override def withFitness(newFitness: Float): Chromosome = {
     val newChromosome = new Chromosome(genes)
     newChromosome.calculatedFitness = newFitness
 
     newChromosome
+  }
+
+  override def withGenes(newGenes: Seq[Gene[_]]): Chromosome = {
+    assert(newGenes.size == genes.size)
+    new Chromosome(newGenes)
   }
 }

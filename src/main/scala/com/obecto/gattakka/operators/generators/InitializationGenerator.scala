@@ -5,7 +5,6 @@ class InitializationGenerator(initializer: () => Chromosome) extends ChromosomeG
 
   def parentCount = 0
   def childCount = 1
-  def weigth = 0.0f
 
   def apply(oldPopulation: Population): TraversableOnce[Chromosome] = {
     List(initializer())

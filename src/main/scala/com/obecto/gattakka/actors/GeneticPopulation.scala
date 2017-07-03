@@ -1,130 +1,112 @@
 package com.obecto.gattakka.actors
-import scala.collection.mutable
+
 import com.obecto.gattakka.genetics.{ Chromosome, Population }
-import com.obecto.gattakka.operators.{ Pipeline }
+
 import akka.actor.{ Actor, ActorRef, Props, Terminated }
 import akka.pattern.{ ask, pipe }
 import akka.util.{ Timeout }
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.Future
-import scala.util.{ Success, Failure }
 
-class GeneticPopulationActor(evaluatorProps: Props, individualProps: Props, pipeline: Pipeline) extends Actor {
+object GeneticPopulationActor {
+  def getProps(evaluatorProps: Props,
+      individualProps: Props,
+      creatorProps: Props = Props[CreationActor],
+      destructorProps: Props = Props[DestructionActor]
+    ): Props = {
+    Props(classOf[GeneticPopulationActor], evaluatorProps, individualProps, creatorProps, destructorProps)
+  }
+}
+
+class GeneticPopulationActor(evaluatorProps: Props, individualProps: Props, creatorProps: Props, destructorProps: Props) extends Actor {
   import context.dispatcher
-  import messages._
+  import messages.population._
 
-  sealed trait ChildState
-  case object Initializing extends ChildState
-  case object Initialized extends ChildState
+  case class IndividualRef(state: IndividualState, actor: ActorRef = null)
 
-  var targetSize = 10
-  var running = false
+  sealed trait IndividualState {
+    var count = 0
+  }
+  case object Initializing extends IndividualState
+  case object Initialized extends IndividualState
+
+
+
+  val childChromosomes = mutable.HashMap[ActorRef, Chromosome]()
+  val individualRefs = mutable.HashMap[Chromosome, IndividualRef]()
 
   val evaluator = context.actorOf(evaluatorProps, "evaluator")
-  val individualStates = mutable.HashMap[ActorRef, (ChildState, Chromosome)]()
-  var initializedCount = 0
-  var initializingCount = 0
-  var individualCount = 0
+  val creator = context.actorOf(creatorProps, "creator")
+  val destructor = context.actorOf(destructorProps, "destructor")
+
   var nextSequentialId = 0
 
-  private var recreateIndividualsDeferred = false
-  val recreateIndividualsDeferTimeout = 0.5.seconds
-
   def receive = {
-    case StartGeneticAlgorithm =>
-      running = true
-      recreateIndividuals()
-
-    case StopGeneticAlgorithm =>
-      running = false
-
-    case SetTargetPopulationSize(newSize, shouldKill) =>
-      if (shouldKill && targetSize > newSize) {
-        targetSize = newSize
-        killExcessIndividuals()
-      } else {
-        targetSize = newSize
-        recreateIndividuals()
+    case KillIndividuals(individuals) =>
+      for (individual <- individuals) {
+        if (individualRefs.contains(individual)) {
+          context.stop(individualRefs(individual).actor)
+        }
       }
 
-    case KillIndividual(individual) =>
-      setChildState(context.sender, null)
-      context.stop(individual)
+    case CreateIndividuals(individuals) =>
+      for (individual <- individuals) {
+        createIndividual(individual)
+      }
 
-    case GetEvolvedChromosomes(strategy, amount) =>
-      fetchEvaluatedPopulation() andThen {
-        case Success(population) =>
+    case SelectIndividuals(strategy, amount) =>
+      fetchEvaluatedPopulation() map { population =>
           population.resortChromosomes()
           population.recomputeValues()
-          EvolvedChromosomesResult(strategy.apply(population, amount))
+
+          if (amount < 0)
+            IndividualsResult(strategy.apply(population, amount + population.chromosomes.size))
+          else
+            IndividualsResult(strategy.apply(population, amount))
+
+      } pipeTo context.sender
+
+    case SelectIndividualsPercent(strategy, percent) =>
+      fetchEvaluatedPopulation() map { population =>
+          population.resortChromosomes()
+          population.recomputeValues()
+          IndividualsResult(strategy.apply(population, (population.chromosomes.size * percent).round))
       } pipeTo context.sender
 
     case GetStatistics =>
-      fetchEvaluatedPopulation() andThen {
-        case Success(population) =>
-          StatisticsResult(population.getStatistics)
+      fetchEvaluatedPopulation() map { population =>
+        StatisticsResult(population.getStatistics)
       } pipeTo context.sender
 
+    case GetAliveCount =>
+      context.sender ! AliveCountResult(individualRefs.size)
 
-    case IndividualReady =>
-      setChildState(context.sender, Initialized)
-      evaluator ! IntroduceIndividual(individualStates(context.sender)._2, context.sender)
-      println("One more readied")
+    case GetPopulation =>
+      fetchEvaluatedPopulation() map { population =>
+        PopulationResult(population)
+      } pipeTo context.sender
+
+    case messages.individual.InitializeResult =>
+      setChildState(childChromosomes(context.sender), IndividualRef(Initialized))
+      evaluator ! messages.evaluator.IntroduceIndividual(childChromosomes(context.sender), context.sender)
+      // println("One more readied")
 
     case Terminated(individual) =>
-      setChildState(context.sender, null)
-      println("Gah, he died!")
-      deferRecreateIndividuals()
+      setChildState(childChromosomes(individual), null)
+      creator ! PopulationSizeChangedEvent
+      // println("Gah, he died")
 
     case unrelatedMessage => println("Got a message: " + unrelatedMessage)
   }
 
 
   def fetchEvaluatedPopulation(): Future[Population] = {
-    val evaluatedFitnessesFuture = (evaluator ? GetEvaluatedFitnesses) (Timeout(1.seconds))
+    val evaluatedFitnessesFuture = (evaluator ? messages.evaluator.GetEvaluatedPopulation) (Timeout(1.seconds))
     val populationFuture = evaluatedFitnessesFuture map {
-      case EvaluatedFitnessesResult(result) =>
-        val mappedResults = result.map({
-          case (individual, fitness) =>
-            if (individualStates.contains(individual)) {
-              (individualStates(individual)._2, fitness)
-            } else {
-              (null, 0f)
-            }
-        })
-
-        Population.from(mappedResults)
+      case messages.evaluator.EvaluatedPopulationResult(result) => result
     }
     return populationFuture.mapTo[Population]
-  }
-
-
-  def deferRecreateIndividuals(): Unit = {
-    if (!recreateIndividualsDeferred) {
-      recreateIndividualsDeferred = true
-      println("GO IN")
-      context.system.scheduler.scheduleOnce(recreateIndividualsDeferTimeout) {
-        println("GO ON")
-        recreateIndividualsDeferred = false
-        recreateIndividuals()
-      }
-    }
-  }
-
-  def recreateIndividuals(): Unit = {
-    if (running) {
-      fetchEvaluatedPopulation() andThen {
-        case Success(population) =>
-          val neededAmount = targetSize - individualCount
-          population.resortChromosomes()
-          population.recomputeValues()
-          val chromosomes = pipeline.apply(population, neededAmount)
-          for (chromosome <- chromosomes) {
-            createIndividual(chromosome)
-          }
-        case Failure(exception) => println(exception.getStackTraceString)
-      }
-    }
   }
 
   def createIndividual(chromosome: Chromosome): Unit = {
@@ -133,40 +115,30 @@ class GeneticPopulationActor(evaluatorProps: Props, individualProps: Props, pipe
 
     context.watch(individual)
 
-    println("Initializing an individual...")
-    setChildState(individual, Initializing, chromosome)
-    individual ! InitializeIndividual(chromosome, evaluator)
-  }
-
-  def killExcessIndividuals(): Unit = {
-    println("Killing..." + individualCount)
-    for (i <- targetSize until individualCount) {
-      setChildState(context.sender, null)
-      val individual = individualStates.keys.toSeq(scala.util.Random.nextInt(individualStates.size))
-      context.stop(individual)
-    }
+    // println("Initializing an individual...")
+    setChildState(chromosome, IndividualRef(Initializing, individual))
+    individual ! messages.individual.Initialize(chromosome, evaluator)
+    evaluator ! messages.evaluator.IntroduceIndividual(chromosome, individual)
   }
 
 
-  private def setChildState(individual: ActorRef, newState: ChildState, newChromosome: Chromosome = null): Unit = {
-    individualStates.getOrElse(individual, null) match {
-      case (Initialized, _) => initializedCount -= 1
-      case (Initializing, _) => initializingCount -= 1
-      case null => individualCount += 1
+  private def setChildState(chromosome: Chromosome, newRef: IndividualRef): Unit = {
+    individualRefs.get(chromosome).map { ref =>
+      ref.state.count -= 1
     }
-    newState match {
-      case Initialized => initializedCount += 1
-      case Initializing => initializingCount += 1
-      case null => individualCount -= 1
-    }
-    if (newState != null) {
-      if (newChromosome != null) {
-        individualStates(individual) = (newState, newChromosome)
-      } else {
-        individualStates(individual) = (newState, individualStates(individual)._2)
+
+    if (newRef != null) {
+      newRef.state.count += 1
+      val oldRef = individualRefs.getOrElse(chromosome, null)
+      if (newRef.actor != null) {
+        if (oldRef != null) childChromosomes.remove(oldRef.actor)
+        childChromosomes(newRef.actor) = chromosome
+        individualRefs(chromosome) = IndividualRef(newRef.state, newRef.actor)
+      } else if (oldRef != null) {
+        individualRefs(chromosome) = IndividualRef(newRef.state, oldRef.actor)
       }
     } else {
-      individualStates.remove(individual)
+      individualRefs.remove(chromosome)
     }
   }
 }

@@ -4,29 +4,46 @@ import com.obecto.gattakka.operators._
 import akka.actor.{ ActorRef }
 
 object messages {
-  case class NewPopulation(populationId: Int)
+  object population {
+    case class CreateIndividuals(chromosomes: TraversableOnce[Chromosome])
+    case class KillIndividuals(chromosomes: TraversableOnce[Chromosome])
 
-  case object GetStatistics
-  case class StatisticsResult(population: PopulationStatistics)
+    case class SelectIndividuals(strategy: SelectionStrategy, amount: Int)
+    case class SelectIndividualsPercent(strategy: SelectionStrategy, percent: Float)
+    case class IndividualsResult(individuals: Seq[Chromosome])
 
-  case class GetEvolvedChromosomes(strategy: SelectionStrategy, amount: Int)
-  case class EvolvedChromosomesResult(chromosomes: Seq[Chromosome])
+    case object GetPopulation
+    case class PopulationResult(population: Population)
 
-  case class ChangePipeline(newPipeline: Pipeline)
+    case object GetStatistics
+    case class StatisticsResult(statistics: PopulationStatistics)
 
-  case class KillIndividual(ref: ActorRef)
+    case object GetAliveCount
+    case class AliveCountResult(count: Int)
 
-  case object StartGeneticAlgorithm
-  case object StopGeneticAlgorithm
-  case class SetTargetPopulationSize(size: Int, shouldKill: Boolean = false)
+    case object PopulationSizeChangedEvent
+  }
 
+  object evaluator {
+    case class GetEvaluatedPopulation()
+    case class EvaluatedPopulationResult(result: Population)
 
-  case class InitializeIndividual(chromosome: Chromosome, evaluator: ActorRef)
-  case object IndividualReady
+    case class IntroduceIndividual(chromosome: Chromosome, individual: ActorRef)
+  }
 
-  case class IntroduceIndividual(chromosome: Chromosome, individual: ActorRef)
+  object individual {
+    case class Initialize(chromosome: Chromosome, evaluator: ActorRef)
+    case object InitializeResult
+  }
 
-  case class GetEvaluatedFitnesses()
-  case class EvaluatedFitnessesResult(result: Map[ActorRef, Float])
+  object destructor {
+    case class SetParameters(strategy: SelectionStrategy, killPercentage: Float)
+    case class TrimPopulationSize(size: Int)
+    case object KillIndividuals
+  }
 
+  object creator {
+    case class AddGenerator(generator: ChromosomeGenerator, weigth: Float = 1)
+    case class SetTargetPopulationSize(size: Int)
+  }
 }
