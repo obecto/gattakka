@@ -1,19 +1,21 @@
 package com.obecto.gattakka.genetics
 
-case class Chromosome(var genes: Seq[Gene[_]] = Array[Gene[_]]()) extends ChromosomeBase[Chromosome] {
-  override def getMutationRate(): Float = {
-    return 1f
+import com.obecto.gattakka.genetics.operators.{MutationOperator, ReplicationOperator}
+
+ class Chromosome(val genes: Seq[Gene[_]] = Array[Gene[_]]())  {
+
+    var fitness = 0f
+
+  def >< (mate : Chromosome)(implicit op: ReplicationOperator) : List[Chromosome] = {
+    op.replicate(this,mate)
   }
 
-  override def withFitness(newFitness: Float): Chromosome = {
-    val newChromosome = new Chromosome(genes)
-    newChromosome.calculatedFitness = newFitness
-
-    newChromosome
+  def @#! (implicit op: MutationOperator) : Chromosome = {
+    op.mutate(this,op.mutationChance)
   }
 
-  override def withGenes(newGenes: Seq[Gene[_]]): Chromosome = {
+/*  override def withGenes(newGenes: Seq[Gene[_]]): Chromosome = {
     assert(newGenes.size == genes.size)
-    new Chromosome(newGenes)
-  }
-}
+    Chromosome(newGenes)
+  }*/
+ }

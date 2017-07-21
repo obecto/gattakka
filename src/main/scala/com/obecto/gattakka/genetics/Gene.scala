@@ -1,5 +1,6 @@
 package com.obecto.gattakka.genetics
 import scala.math.BigInt
+import scala.util.Random
 
 trait Gene[T] extends Serializable {
   var value: T

@@ -1,4 +1,4 @@
-package com.obecto.gattakka.operators
+package com.obecto.gattakka.genetics.operators
 import com.obecto.gattakka.genetics._
 
 class InitializationGenerator(initializer: () => Chromosome) extends ChromosomeGenerator {
@@ -6,7 +6,7 @@ class InitializationGenerator(initializer: () => Chromosome) extends ChromosomeG
   def parentCount = 0
   def childCount = 1
 
-  def apply(oldPopulation: Population): TraversableOnce[Chromosome] = {
+  def apply(oldPopulation: EvaluationResult): TraversableOnce[Chromosome] = {
     List(initializer())
   }
 }
