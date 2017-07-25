@@ -1,30 +1,33 @@
 package playground
-import akka.actor.{ActorRef, ActorSystem}
-import com.obecto.gattakka.{BiologicalOperators, Evaluator, GeneticPopulation, Individual}
+
+import akka.actor.ActorSystem
+import com.obecto.gattakka._
+import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator}
+import com.obecto.gattakka.genetics.{BinaryGene, Chromosome, Gene, Genome}
 import com.obecto.gattakka.messages.individual.Initialize
-import com.obecto.gattakka.genetics._
+import com.obecto.gattakka.messages.population.RefreshPopulation
 
-class CustomEvaluator(environmentalData: AnyVal, population: ActorRef) extends Evaluator(environmentalData,population){
+import scala.concurrent.duration._
 
-   val fitness: Float = 0f
 
-  def handleSignal(signalData: AnyVal): Unit = {
-    //setFitness
-  }
-    /*  val x = chromosome.genes.head.asInstanceOf[BinaryGene].toDouble * 200 - 100
-      val y = chromosome.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
+class CustomEvaluationAgent extends EvaluationAgent {
+
+  override def onSignalReceived(data: Any): Unit = data match {
+    case genome: Genome =>
+      val x = genome.chromosomes.head.genes.head.asInstanceOf[BinaryGene].toDouble * 200 - 100
+      val y = genome.chromosomes.head.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
       val temp1 = Math.sin(Math.sqrt(x * x + y * y))
       val temp2 = 1 + 0.001 * (x * x + y * y)
-      val result = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toFloat
-     // println("Adding evaluated result... " + chromosome)
-      chromosome.fitness = result
-      evaluationResult.addEvaluatedChromosome(chromosome,isLast)*/
+      fitness = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toFloat
+    //println(s"Fitness is: $fitness")
+  }
 }
 
-class CustomIndividualActor(chromosome: Chromosome) extends Individual(chromosome) {
+class CustomIndividualActor(genome: Genome) extends Individual(genome) {
 
   override def customReceive = {
     case Initialize(data) =>
+      dispatchEvent(genome)
       //TODO Extract data from chromosomes and connect with TA-LIB
   }
 
@@ -37,25 +40,31 @@ class CustomIndividualActor(chromosome: Chromosome) extends Individual(chromosom
 
 object RunGattakka extends App {
 
-  val initialChromosomes = (1 to 100).map((i: Int) => {
-    new Chromosome(Array[Gene[_]](
+  val initialChromosomes = (1 to 50).map((i: Int) => {
+    new Genome(List(new Chromosome(List[Gene[_]](
       BinaryGene(32), BinaryGene(32)
-    ))
-  })
+    ))))
+  }).toList
 
   val system = ActorSystem("gattakka")
 
-  val biologicalOperatorTypes = BiologicalOperators()
 
-  val populationActor = system.actorOf(GeneticPopulation.props(
+  val pipelineOperators: List[PipelineOperator] = List(new EliteOperator {}, new BinaryMutationOperator {
+    override val mutationChance: Float = 0.02f
+  })
+  val pipelineActor = system.actorOf(Pipeline.props(pipelineOperators))
+
+  val evaluator = system.actorOf(Evaluator.props(classOf[CustomEvaluationAgent]), "evaluator")
+  val populationActor = system.actorOf(Population.props(
     classOf[CustomIndividualActor],
-    biologicalOperatorTypes,
-    classOf[CustomEvaluator],
     initialChromosomes,
-    "Ko staa"
+    evaluator,
+    pipelineActor
   ), "population")
 
-  object abc extends AnyVal{
+  import system.dispatcher
 
-  }
+  system.scheduler.schedule(1 seconds, 1 milliseconds, populationActor, RefreshPopulation)
+
+
 }

@@ -1,17 +1,17 @@
 package com.obecto.gattakka.genetics.operators
 
-import com.obecto.gattakka.genetics._
+import com.obecto.gattakka.IndividualDescriptor
 
 class RouletteWheelParentSelectionStrategy(rng: scala.util.Random = scala.util.Random) extends ParentSelectionStrategy {
 
-  def select(from: Seq[Chromosome]): Chromosome = {
+  def select(from: Seq[IndividualDescriptor]): IndividualDescriptor = {
     val totalFitness = calculateTotalFitness(from)
     val randomLimit = totalFitness * rng.nextFloat()
     var reached = 0.0
 
     from find {
-      chromosome =>
-        reached += chromosome.fitness
+      desc =>
+        reached += desc.currentFitness
         reached >= randomLimit
     } match {
       case Some(value) => value
@@ -19,9 +19,9 @@ class RouletteWheelParentSelectionStrategy(rng: scala.util.Random = scala.util.R
     }
   }
 
-  private def calculateTotalFitness(chromosomes: Seq[Chromosome]): Float = {
+  private def calculateTotalFitness(individualDescriptors: Seq[IndividualDescriptor]): Float = {
     var totalFitness = 0.0f
-    chromosomes.foreach(totalFitness += _.fitness)
+    individualDescriptors.foreach(totalFitness += _.currentFitness)
     totalFitness
   }
 

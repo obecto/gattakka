@@ -1,118 +1,104 @@
 package com.obecto.gattakka
 
-import akka.actor.{Actor, ActorRef, Props}
-import akka.pattern.Patterns
+import akka.actor.{Actor, ActorRef, PoisonPill, Props, Terminated}
+import akka.pattern._
 import akka.util.Timeout
-import com.obecto.gattakka.genetics.Chromosome
-import com.obecto.gattakka.genetics.operators.{MutationOperator, ParentSelectionStrategy, ReplicationOperator}
-import com.obecto.gattakka.messages.evaluator.GetEvaluationAgent
+import com.obecto.gattakka.genetics.Genome
+import com.obecto.gattakka.messages.evaluation.{GetEvaluationAgent, GetFitness}
+import com.obecto.gattakka.messages.eventbus.{AddSubscriber, HandleEvent}
 import com.obecto.gattakka.messages.individual.Initialize
-import com.obecto.gattakka.messages.population.{ReceiveSignal, RefreshPopulation}
+import com.obecto.gattakka.messages.population.{PipelineFinished, RefreshPopulation, RunPipeline}
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
-object GeneticPopulation {
+object Population {
   def props(individualActorType: Class[_ <: Individual],
-            biologicalOperators: BiologicalOperators,
+            initialGenomes: List[Genome],
             evaluator: ActorRef,
-            initialChromosomes: Seq[Chromosome],
-            environmentalData: AnyVal,
-            populationSize: Int = 100
+            pipelineActor: ActorRef,
+            environmentalData: Any = ""
            ): Props = {
-    Props(classOf[GeneticPopulation], individualActorType, biologicalOperators, evaluator,
-      initialChromosomes, environmentalData, populationSize)
+    Props(classOf[Population], individualActorType,
+      initialGenomes, evaluator: ActorRef, pipelineActor, environmentalData)
   }
 }
 
-class GeneticPopulation(individualActorType: Class[_ <: Individual],
-                        biologicalOperators: BiologicalOperators,
-                        evaluator: ActorRef,
-                        initialChromosomes: Seq[Chromosome],
-                        environmentalData: AnyVal,
-                        populationSize: Int = 100
+class Population(individualActorType: Class[_ <: Individual],
+                 initialGenomes: List[Genome],
+                 evaluator: ActorRef,
+                 pipelineActor: ActorRef,
+                 environmentalData: Any = ""
                        ) extends Actor {
 
 
   implicit val timeout = Config.REQUEST_TIMEOUT
-  /* implicit val repOp = biologicalOperators.replicator.getOrElse(new SinglePointReplication {})
-   implicit val mutOp = biologicalOperators.mutator.getOrElse(new BinaryMutation {})
-   implicit val parentSelectionStrategy = biologicalOperators.parentSelectionStrategy.getOrElse(
-     new RouletteWheelParentSelectionStrategy()
-   )*/
-  //val retainParentsPercentage = 0.1f
 
-
-
-
-  val firstIndividualDescriptors: Seq[IndividualDescriptor] = initialChromosomes map {
-    chromosome =>
-      IndividualDescriptor(None, chromosome)
+  val lookupBusImpl = new LookupBusImplementation
+  val firstIndividualDescriptors: List[IndividualDescriptor] = initialGenomes map {
+    genome: Genome =>
+      IndividualDescriptor(genome, None)
   }
-
-  var currentIndividualDescriptors: List[IndividualDescriptor] = hatchPopulation(firstIndividualDescriptors,evaluator)
+  var needToRefreshPipeline: Int = 0
+  var populationAge = 0
+  var isPipelineFree = true
+  var currentIndividualDescriptors: ListBuffer[IndividualDescriptor] =
+    hatchPopulation(firstIndividualDescriptors, evaluator).to[ListBuffer]
 
   def receive: Receive = {
 
-    /*case ReceiveSignal(data) =>
-      currentIndividuals.find(individualDescriptor => {
-        var isEqual = false
-        if (individualDescriptor.individual.nonEmpty) {
-          isEqual = individualDescriptor.individual.get.equals(sender())
-        }
-        isEqual
-      }) match {
-        case Some(descriptor) => descriptor.evaluator.handleSignal(data)
-        case None =>
-      }*/
+    case AddSubscriber(subscriber, classification) =>
+      lookupBusImpl.subscribe(subscriber, classification)
 
     case RefreshPopulation =>
       handleRefreshPipelineRequest()
 
+    case Terminated(ref) =>
+    //println("My child died :( " + ref.path.name)
+
   }
 
-  def handleRefreshPipelineRequest(): Unit = {}
+  def handleRefreshPipelineRequest(): Unit = {
+    if (!isPipelineFree) {
+      needToRefreshPipeline += 1
+      println("Pipeline is running")
+    } else {
+      runPipeline(currentIndividualDescriptors.toList)
+    }
+  }
 
-  def runPipeline(): Unit = {}
 
-
-  /*def reproduceChromosomes(chromosomes: Seq[Chromosome])
-                          (implicit parentSelectionStrategy: ParentSelectionStrategy): List[Chromosome] = {
-
-    println("Reproducing chromosomes")
-    val children: ListBuffer[Chromosome] = ListBuffer.empty
-    do {
-      val parent1 = parentSelectionStrategy.select(chromosomes)
-      val parent2 = parentSelectionStrategy.select(chromosomes.filter(!_.equals(parent1)))
-      children.++=:(parent1 >< parent2).toList
-    } while (children.length <= chromosomes.length)
-
-    children.toList.map(_ @#!).slice(0, chromosomes.length)
-  }*/
-
-  def hatchPopulation(descriptors: Iterable[IndividualDescriptor], evaluator: ActorRef)(implicit timeout: Timeout): List[IndividualDescriptor] = {
+  def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
+                     (implicit timeout: Timeout): List[IndividualDescriptor] = {
     descriptors foreach {
       descriptor =>
-        val individual = giveBirthToIndividual(descriptor.chromosome)
-        val evaluationAgent = getEvaluationAgent(individual,evaluator)
+        val individual = giveBirthToIndividual(descriptor.genome)
+        val evaluationAgent = getEvaluationAgent(individual, evaluator)
+        createSubscription(individual, evaluationAgent, "individual_signal")
         initializeNewbornIndividual(individual)
-        descriptor.individualEvaluationPair = Some(IndividualEvaluationPair(individual,evaluationAgent))
+        descriptor.individualEvaluationPair = Some(IndividualEvaluationPair(individual, evaluationAgent))
     }
-    descriptors.toList
+    descriptors
   }
 
-  def giveBirthToIndividual(chromosome: Chromosome): ActorRef = {
-    val individual = context.actorOf(Props.apply(individualActorType, chromosome))
+  def giveBirthToIndividual(genome: Genome): ActorRef = {
+    val individual = context.actorOf(Props.apply(individualActorType, genome))
     context.watch(individual)
     individual
   }
 
-  def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef ={
-    try{
-      val evaluationAgentFuture  = Patterns.ask(evaluator,GetEvaluationAgent,timeout)
-      val evaluationAgent = Await.result(evaluationAgentFuture,timeout.duration).asInstanceOf[ActorRef]
+  def createSubscription(to: ActorRef, subscriber: ActorRef, classification: String = ""): Unit = {
+    to ! AddSubscriber(subscriber, classification)
+  }
+
+  def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
+    try {
+      val evaluationAgentFuture = evaluator ? GetEvaluationAgent
+      val evaluationAgent = Await.result(evaluationAgentFuture, timeout.duration).asInstanceOf[ActorRef]
       evaluationAgent
     } catch {
-      case exc : Exception => throw exc
+      case exc: Exception => throw exc
     }
   }
 
@@ -120,12 +106,85 @@ class GeneticPopulation(individualActorType: Class[_ <: Individual],
     individual ! Initialize(environmentalData)
     individual
   }
+
+  def killIndividuals(): Unit = {
+    currentIndividualDescriptors filter {
+      individualDescriptor =>
+        individualDescriptor.doomedToDie
+    } foreach {
+      doomedDescriptor =>
+        doomedDescriptor.individualEvaluationPair match {
+          case Some(individualEvaluationPair) =>
+            individualEvaluationPair.individual ! PoisonPill
+            individualEvaluationPair.evaluationAgent ! PoisonPill
+            doomedDescriptor.individualEvaluationPair = None
+          case None =>
+        }
+        currentIndividualDescriptors -= doomedDescriptor
+    }
+  }
+
+  private def getFitness(evaluationAgent: ActorRef): Float = {
+    try {
+      val fitnessFuture = evaluationAgent ? GetFitness
+      Await.result(fitnessFuture, timeout.duration).asInstanceOf[Float]
+    } catch {
+      case exc: Exception =>
+        exc.printStackTrace()
+        throw exc
+    }
+  }
+
+  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
+    currentIndividualDescriptors foreach {
+      desc =>
+        desc.individualEvaluationPair match {
+          case Some(pair) =>
+            desc.currentFitness = getFitness(pair.evaluationAgent)
+          case None =>
+        }
+    }
+
+    println(s"Population size is: ${currentIndividualDescriptors.size}")
+
+    isPipelineFree = false
+    try {
+      val pipelineFuture = pipelineActor ? RunPipeline(snapshot)
+      val childGenomes = Await.result(pipelineFuture, timeout.duration)
+        .asInstanceOf[List[IndividualDescriptor]]
+      killIndividuals()
+      println("childGenomes are: " + s"${childGenomes.size}")
+      val newIndividualDescriptors = hatchPopulation(childGenomes, evaluator)
+      currentIndividualDescriptors.++=:(newIndividualDescriptors)
+      currentIndividualDescriptors foreach {
+        _.tempParams.clear()
+      }
+    } catch {
+      case exc: Exception => exc.printStackTrace()
+    }
+
+    lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
+    populationAge += 1
+    println(s"Population aged one more year: $populationAge")
+    isPipelineFree = true
+
+    if (needToRefreshPipeline > 0) {
+      runPipeline(currentIndividualDescriptors.toList)
+      needToRefreshPipeline -= 1
+    }
+
+  }
+
 }
 
+case class IndividualDescriptor(genome: Genome,
+                                var individualEvaluationPair: Option[IndividualEvaluationPair],
+                                var currentFitness: Float = 0.0f,
+                                var doomedToDie: Boolean = false,
+                                var retainGenome: Boolean = false,
+                                additionalParams: mutable.Map[String, Any] = mutable.Map.empty[String, Any],
+                                tempParams: mutable.Map[String, Any] = mutable.Map.empty[String, Any]
+                               )
 
-case class IndividualDescriptor(var individualEvaluationPair: Option[IndividualEvaluationPair], chromosome: Chromosome)
 case class IndividualEvaluationPair(individual: ActorRef, evaluationAgent: ActorRef)
 
-case class BiologicalOperators(parentSelectionStrategy: Option[ParentSelectionStrategy] = None,
-                               replicator: Option[ReplicationOperator] = None,
-                               mutator: Option[MutationOperator] = None)

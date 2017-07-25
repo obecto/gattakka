@@ -1,28 +1,32 @@
 package com.obecto.gattakka
 
-import akka.actor.{Actor, ActorRef}
-import akka.event.{EventBus, LookupClassification, SubchannelClassification}
-import akka.util.Subclassification
+import akka.actor.Actor
+import com.obecto.gattakka.messages.evaluation.GetFitness
 
 /**
   * Created by gbarn_000 on 7/19/2017.
   */
-class EvaluationAgent extends Actor{
+abstract class EvaluationAgent extends Actor {
   var fitness = 0.0f
 
   def receive: Receive = {
 
-    case data: Any =>
-      onDataReceived(data)
+    case GetFitness =>
+      sender() ! fitness
 
+    case data: Any =>
+      onSignalReceived(data)
   }
 
-  def onDataReceived(data: Any): Unit = data match {
+  def onSignalReceived(data: Any): Unit = data match {
+    //TODO override function to set fitness
     case data: Float =>
       fitness = data
   }
-}
-case class HandleEvent(dataType: String, payload : Any)
 
-final case class MsgEnvelope(topic: String, payload: Any)
+  /*  def subscribeTo(actor: ActorRef, classification: String): Unit ={
+      actor ! AddSubscriber(self, classification)
+    }*/
+
+}
 
