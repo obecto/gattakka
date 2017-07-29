@@ -1,39 +1,74 @@
 package com.obecto.gattakka.genetics
-import scala.math.BigInt
-import scala.util.Random
 
-trait Gene[T] extends Serializable {
-  var value: T
-  def size: Int
-  def toFloat: Float = toDouble.toFloat
-  def toDouble: Double
+import java.nio.ByteBuffer
+import java.security.MessageDigest
+
+import scala.math.BigInt
+
+
+trait Gene {
+  def value: Any
+
+  def length: Int
   def toByteArray: Array[Byte]
-  // fromSize is the "parent" gene's size. It should be expected to remain constant
-  def fromByteArray(from: Array[Byte], fromSize: Int = size): Gene[T]
+
+  def fromByteArray(from: Array[Byte]): Unit
+
+  def setRandomValue(): Unit
+
+  def MD5HashStructure: String
+
 }
 
-object BinaryGene {
-  def apply(size: Int, rnd: scala.util.Random = scala.util.Random): BinaryGene = {
-    new BinaryGene(size, BigInt(numbits = size, rnd = scala.util.Random))
+object IntegerGene {
+  def apply(length: Int, rnd: scala.util.Random = scala.util.Random): IntegerGene = {
+    new IntegerGene(length, BigInt(numbits = length, rnd = scala.util.Random))
+  }
+
+  def apply(length: Int, value: BigInt): IntegerGene = {
+    new IntegerGene(length, value)
+  }
+
+  def apply(length: Int, byteArray: Array[Byte]): IntegerGene = {
+    new IntegerGene(length, BigInt(byteArray))
   }
 }
 
-case class BinaryGene(val size: Int, var value: BigInt) extends Gene[BigInt] {
+case class IntegerGene(length: Int, var value: BigInt) extends Gene {
 
-  val maxValue = (BigInt(1) << size) - 1
+  val rnd = scala.util.Random
+  val maxValue = (BigInt(1) << length) - 1
   val maxValueDouble = maxValue.doubleValue
 
+  def scale(minValue: Int, maxValue: Int): Unit = {
+    //...
+  }
   value = value & maxValue // Zero highest bits, just in case
 
-
-  def toBigInt: BigInt = value
-  def asInt: Int = value.intValue
-  override def toDouble: Double = (value.doubleValue / maxValueDouble)
+  def toDouble: Double = value.doubleValue / maxValueDouble
 
   def toByteArray: Array[Byte] = {
-    val unpadded = value.toByteArray
-    val padding = Array[Byte]().padTo(size / 8 - unpadded.length, 0.toByte)
+    var unpadded = value.toByteArray
+    if (unpadded.head == 0) {
+      unpadded = unpadded.slice(1, unpadded.length)
+    }
+    // println(s"unpadded length is: ${unpadded.length} with value $value")
+    val padding = Array[Byte]().padTo(length / 8 - unpadded.length, 0.toByte)
     padding ++ unpadded
   }
-  def fromByteArray(from: Array[Byte], fromSize: Int = size): BinaryGene = new BinaryGene(fromSize, BigInt(from))
+
+  def fromByteArray(from: Array[Byte]): Unit =
+    value = BigInt(from)
+
+  def setRandomValue(): Unit = {
+    value = BigInt(length, rnd)
+  }
+
+  def MD5HashStructure: String = {
+    val byteArrayOfType: Array[Byte] = value.getClass.toString.getBytes
+    val byteArrayOfLength: Array[Byte] = ByteBuffer.allocate(4).putInt(length).array
+    val md5ByteArrayHash = MessageDigest.getInstance("MD5").digest(byteArrayOfLength ++ byteArrayOfType)
+    new String(md5ByteArrayHash)
+  }
+
 }

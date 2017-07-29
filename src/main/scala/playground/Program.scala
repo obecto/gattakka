@@ -3,7 +3,7 @@ package playground
 import akka.actor.ActorSystem
 import com.obecto.gattakka._
 import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator}
-import com.obecto.gattakka.genetics.{BinaryGene, Chromosome, Gene, Genome}
+import com.obecto.gattakka.genetics.{Chromosome, Genome, IntegerGene}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.RefreshPopulation
 
@@ -14,8 +14,8 @@ class CustomEvaluationAgent extends EvaluationAgent {
 
   override def onSignalReceived(data: Any): Unit = data match {
     case genome: Genome =>
-      val x = genome.chromosomes.head.genes.head.asInstanceOf[BinaryGene].toDouble * 200 - 100
-      val y = genome.chromosomes.head.genes(1).asInstanceOf[BinaryGene].toDouble * 200 - 100
+      val x = genome.chromosomes.head.genes.head.asInstanceOf[IntegerGene].toDouble * 200 - 100
+      val y = genome.chromosomes.head.genes(1).asInstanceOf[IntegerGene].toDouble * 200 - 100
       val temp1 = Math.sin(Math.sqrt(x * x + y * y))
       val temp2 = 1 + 0.001 * (x * x + y * y)
       fitness = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toFloat
@@ -41,9 +41,7 @@ class CustomIndividualActor(genome: Genome) extends Individual(genome) {
 object RunGattakka extends App {
 
   val initialChromosomes = (1 to 50).map((i: Int) => {
-    new Genome(List(new Chromosome(List[Gene[_]](
-      BinaryGene(32), BinaryGene(32)
-    ))))
+    new Genome(List(new Chromosome))
   }).toList
 
   val system = ActorSystem("gattakka")

@@ -29,38 +29,36 @@ trait BinaryMutationOperator extends MutationBaseOperator with PipelineOperator 
 
     withoutElites foreach {
       individualDescriptor =>
+
         val genome = individualDescriptor.genome
         var mutationOccured = false
+        var mutationOccuredNum = 0
 
         val newChromosomes = genome.chromosomes map {
           chromosome =>
-            val newGenes = chromosome.genes map {
-              gene =>
-                val bytes: Array[Byte] = gene.toByteArray
-                val newBytes = bytes map {
-                  byte =>
-                    var newByte = byte
-                    for (i <- 0 to 8) {
-                      val randomNum = rng.nextFloat()
-                      if (randomNum < mutationChance) {
-                        mutationOccured = true
-                        // println("Mutation occured")
-                        newByte = (newByte ^ (1 << i)).toByte
-                      }
-                    }
-                    //println(s"newByte is $newByte and oldByte is $byte")
-                    newByte
+            val chromosomeByteArray = chromosome.toByteArray
+            val mutatedByteArray = chromosomeByteArray map {
+              byte =>
+                var newByte = byte
+                for (i <- 0 to 8) {
+                  val randomNum = rng.nextFloat()
+                  if (randomNum < mutationChance) {
+                    mutationOccured = true
+                    newByte = (newByte ^ (1 << i)).toByte
+                  }
                 }
-                gene.fromByteArray(newBytes)
+                newByte
             }
-            new Chromosome(newGenes)
+            new Chromosome(mutatedByteArray)
         }
 
         if (mutationOccured) {
           individualDescriptor.doomedToDie = true
+          mutationOccuredNum += 1
           mutatedIndividuals += IndividualDescriptor(new Genome(newChromosomes), None)
         }
     }
+
     snapshot ++ mutatedIndividuals.toList
   }
 }
