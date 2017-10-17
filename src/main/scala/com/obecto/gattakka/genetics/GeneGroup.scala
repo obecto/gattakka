@@ -10,7 +10,7 @@ trait GeneGroup extends Gene {
 
   def toByteArray: Array[Byte]
 
-  def fromByteArray(from: Array[Byte]): Unit
+  def fromByteArray(from: Array[Byte]): GeneGroup
 
   def setRandomValue(): Unit
 

@@ -31,7 +31,7 @@ class Chromosome(from: Array[Byte] = Array()) extends GeneGroup {
     length
   }
 
-  def fromByteArray(from: Array[Byte]): Unit = {
+  def fromByteArray(from: Array[Byte]): GeneGroup = {
     var sumOfGeneLengths = 0
     genes foreach {
       gene =>
@@ -39,6 +39,7 @@ class Chromosome(from: Array[Byte] = Array()) extends GeneGroup {
         sumOfGeneLengths += cutByteArrayForOneGene.length
         gene.fromByteArray(cutByteArrayForOneGene)
     }
+    this
   }
 
   def toByteArray: Array[Byte] = {

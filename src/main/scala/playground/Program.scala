@@ -62,7 +62,7 @@ object RunGattakka extends App {
 
   import system.dispatcher
 
-  system.scheduler.schedule(1 seconds, 1 milliseconds, populationActor, RefreshPopulation)
+  system.scheduler.schedule(1 seconds, 1 seconds, populationActor, RefreshPopulation)
 
 
 }

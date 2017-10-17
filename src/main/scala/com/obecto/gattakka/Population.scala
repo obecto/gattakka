@@ -30,21 +30,22 @@ class Population(individualActorType: Class[_ <: Individual],
                  evaluator: ActorRef,
                  pipelineActor: ActorRef,
                  environmentalData: Any = ""
-                       ) extends Actor {
+                ) extends Actor {
 
 
   implicit val timeout = Config.REQUEST_TIMEOUT
 
+  import context.dispatcher
   val lookupBusImpl = new LookupBusImplementation
   val firstIndividualDescriptors: List[IndividualDescriptor] = initialGenomes map {
     genome: Genome =>
       IndividualDescriptor(genome, None)
   }
+  private val currentIndividualDescriptors: ListBuffer[IndividualDescriptor] =
+    hatchPopulation(firstIndividualDescriptors, evaluator).to[ListBuffer]
   var needToRefreshPipeline: Int = 0
   var populationAge = 0
-  var isPipelineFree = true
-  var currentIndividualDescriptors: ListBuffer[IndividualDescriptor] =
-    hatchPopulation(firstIndividualDescriptors, evaluator).to[ListBuffer]
+  private var isPipelineFree = true
 
   def receive: Receive = {
 
@@ -62,12 +63,75 @@ class Population(individualActorType: Class[_ <: Individual],
   def handleRefreshPipelineRequest(): Unit = {
     if (!isPipelineFree) {
       needToRefreshPipeline += 1
+      println(needToRefreshPipeline)
       println("Pipeline is running")
     } else {
       runPipeline(currentIndividualDescriptors.toList)
     }
   }
 
+  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
+    setFitnesses()
+    println(s"Population size is: ${currentIndividualDescriptors.size}")
+
+    isPipelineFree = false
+    val pipelineFuture = pipelineActor ? RunPipeline(snapshot)
+    pipelineFuture.foreach({
+      result =>
+        val changedGenomes = result.asInstanceOf[List[IndividualDescriptor]]
+        killIndividuals()
+        println("childGenomes are: " + s"${changedGenomes.size}")
+        val newIndividualDescriptors = hatchPopulation(changedGenomes, evaluator)
+        currentIndividualDescriptors.++=:(newIndividualDescriptors)
+        currentIndividualDescriptors foreach {
+          _.tempParams.clear()
+        }
+        lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
+        populationAge += 1
+        println(s"Population aged one more year: $populationAge")
+        isPipelineFree = true
+    })
+  }
+
+  private def setFitnesses(): Unit = {
+    currentIndividualDescriptors foreach {
+      desc =>
+        desc.individualEvaluationPair match {
+          case Some(pair) =>
+            desc.currentFitness = getFitness(pair.evaluationAgent)
+          case None =>
+        }
+    }
+  }
+
+  private def getFitness(evaluationAgent: ActorRef): Float = {
+    try {
+      val fitnessFuture = evaluationAgent ? GetFitness
+      Await.result(fitnessFuture, timeout.duration).asInstanceOf[Float]
+    } catch {
+      //TODO fix this exception
+      case exc: Exception =>
+        exc.printStackTrace()
+        throw exc
+    }
+  }
+
+  def killIndividuals(): Unit = {
+    currentIndividualDescriptors filter {
+      individualDescriptor =>
+        individualDescriptor.doomedToDie
+    } foreach {
+      doomedDescriptor =>
+        doomedDescriptor.individualEvaluationPair match {
+          case Some(individualEvaluationPair) =>
+            individualEvaluationPair.individual ! PoisonPill
+            individualEvaluationPair.evaluationAgent ! PoisonPill
+            doomedDescriptor.individualEvaluationPair = None
+          case None =>
+        }
+        currentIndividualDescriptors -= doomedDescriptor
+    }
+  }
 
   def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
                      (implicit timeout: Timeout): List[IndividualDescriptor] = {
@@ -88,10 +152,6 @@ class Population(individualActorType: Class[_ <: Individual],
     individual
   }
 
-  def createSubscription(to: ActorRef, subscriber: ActorRef, classification: String = ""): Unit = {
-    to ! AddSubscriber(subscriber, classification)
-  }
-
   def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
     try {
       val evaluationAgentFuture = evaluator ? GetEvaluationAgent
@@ -102,79 +162,14 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
+  def createSubscription(to: ActorRef, subscriber: ActorRef, classification: String = ""): Unit = {
+    to ! AddSubscriber(subscriber, classification)
+  }
+
   def initializeNewbornIndividual(individual: ActorRef): ActorRef = {
     individual ! Initialize(environmentalData)
     individual
   }
-
-  def killIndividuals(): Unit = {
-    currentIndividualDescriptors filter {
-      individualDescriptor =>
-        individualDescriptor.doomedToDie
-    } foreach {
-      doomedDescriptor =>
-        doomedDescriptor.individualEvaluationPair match {
-          case Some(individualEvaluationPair) =>
-            individualEvaluationPair.individual ! PoisonPill
-            individualEvaluationPair.evaluationAgent ! PoisonPill
-            doomedDescriptor.individualEvaluationPair = None
-          case None =>
-        }
-        currentIndividualDescriptors -= doomedDescriptor
-    }
-  }
-
-  private def getFitness(evaluationAgent: ActorRef): Float = {
-    try {
-      val fitnessFuture = evaluationAgent ? GetFitness
-      Await.result(fitnessFuture, timeout.duration).asInstanceOf[Float]
-    } catch {
-      case exc: Exception =>
-        exc.printStackTrace()
-        throw exc
-    }
-  }
-
-  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
-    currentIndividualDescriptors foreach {
-      desc =>
-        desc.individualEvaluationPair match {
-          case Some(pair) =>
-            desc.currentFitness = getFitness(pair.evaluationAgent)
-          case None =>
-        }
-    }
-
-    println(s"Population size is: ${currentIndividualDescriptors.size}")
-
-    isPipelineFree = false
-    try {
-      val pipelineFuture = pipelineActor ? RunPipeline(snapshot)
-      val childGenomes = Await.result(pipelineFuture, timeout.duration)
-        .asInstanceOf[List[IndividualDescriptor]]
-      killIndividuals()
-      println("childGenomes are: " + s"${childGenomes.size}")
-      val newIndividualDescriptors = hatchPopulation(childGenomes, evaluator)
-      currentIndividualDescriptors.++=:(newIndividualDescriptors)
-      currentIndividualDescriptors foreach {
-        _.tempParams.clear()
-      }
-    } catch {
-      case exc: Exception => exc.printStackTrace()
-    }
-
-    lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
-    populationAge += 1
-    println(s"Population aged one more year: $populationAge")
-    isPipelineFree = true
-
-    if (needToRefreshPipeline > 0) {
-      runPipeline(currentIndividualDescriptors.toList)
-      needToRefreshPipeline -= 1
-    }
-
-  }
-
 }
 
 case class IndividualDescriptor(genome: Genome,

@@ -12,7 +12,7 @@ trait Gene {
   def length: Int
   def toByteArray: Array[Byte]
 
-  def fromByteArray(from: Array[Byte]): Unit
+  def fromByteArray(from: Array[Byte]): Gene
 
   def setRandomValue(): Unit
 
@@ -37,8 +37,8 @@ object IntegerGene {
 case class IntegerGene(length: Int, var value: BigInt) extends Gene {
 
   val rnd = scala.util.Random
-  val maxValue = (BigInt(1) << length) - 1
-  val maxValueDouble = maxValue.doubleValue
+  val maxValue: BigInt = (BigInt(1) << length) - 1
+  val maxValueDouble: Double = maxValue.doubleValue
 
   def scale(minValue: Int, maxValue: Int): Unit = {
     //...
@@ -49,6 +49,7 @@ case class IntegerGene(length: Int, var value: BigInt) extends Gene {
 
   def toByteArray: Array[Byte] = {
     var unpadded = value.toByteArray
+    //remove allocated by scala additional zero byte
     if (unpadded.head == 0) {
       unpadded = unpadded.slice(1, unpadded.length)
     }
@@ -57,8 +58,10 @@ case class IntegerGene(length: Int, var value: BigInt) extends Gene {
     padding ++ unpadded
   }
 
-  def fromByteArray(from: Array[Byte]): Unit =
+  def fromByteArray(from: Array[Byte]): Gene = {
     value = BigInt(from)
+    this
+  }
 
   def setRandomValue(): Unit = {
     value = BigInt(length, rnd)
