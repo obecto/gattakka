@@ -9,6 +9,7 @@ import com.obecto.gattakka.messages.eventbus.{AddSubscriber, HandleEvent}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.{PipelineFinished, RefreshPopulation, RunPipeline}
 
+import scala.collection.immutable
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -36,16 +37,20 @@ class Population(individualActorType: Class[_ <: Individual],
   implicit val timeout = Config.REQUEST_TIMEOUT
 
   import context.dispatcher
-  val lookupBusImpl = new LookupBusImplementation
-  val firstIndividualDescriptors: List[IndividualDescriptor] = initialGenomes map {
+  private var needToRefreshPipeline: Int = 0
+  private var populationAge: Int = 0
+  private var isPipelineFree: Boolean = true
+
+  private val lookupBusImpl = new LookupBusImplementation
+
+  private val firstIndividualDescriptors: List[IndividualDescriptor] = initialGenomes map {
     genome: Genome =>
       IndividualDescriptor(genome, None)
   }
+
   private val currentIndividualDescriptors: ListBuffer[IndividualDescriptor] =
     hatchPopulation(firstIndividualDescriptors, evaluator).to[ListBuffer]
-  var needToRefreshPipeline: Int = 0
-  var populationAge = 0
-  private var isPipelineFree = true
+
 
   def receive: Receive = {
 
@@ -60,37 +65,52 @@ class Population(individualActorType: Class[_ <: Individual],
 
   }
 
-  def handleRefreshPipelineRequest(): Unit = {
+  protected def handleRefreshPipelineRequest(): Unit = {
     if (!isPipelineFree) {
       needToRefreshPipeline += 1
       println(needToRefreshPipeline)
       println("Pipeline is running")
     } else {
-      runPipeline(currentIndividualDescriptors.toList)
+      setFitnesses()
+      runPipeline(makeSnapshot)
     }
   }
 
-  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
-    setFitnesses()
-    println(s"Population size is: ${currentIndividualDescriptors.size}")
+  private def makeSnapshot: List[IndividualDescriptor] = {
+    currentIndividualDescriptors.toList map (_.copy())
+  }
 
+  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
+    println(s"Population size is: ${currentIndividualDescriptors.size}")
     isPipelineFree = false
     val pipelineFuture = pipelineActor ? RunPipeline(snapshot)
+
     pipelineFuture.foreach({
       result =>
-        val changedGenomes = result.asInstanceOf[List[IndividualDescriptor]]
-        killIndividuals()
-        println("childGenomes are: " + s"${changedGenomes.size}")
-        val newIndividualDescriptors = hatchPopulation(changedGenomes, evaluator)
+        val processedShapshot = result.asInstanceOf[List[IndividualDescriptor]]
+        val weakSnapshotIndividuals = selectWeakIndividuals(processedShapshot)
+        killIndividuals(weakSnapshotIndividuals)
+        val mustLiveSnapshotIndividuals = processedShapshot.filterNot(weakSnapshotIndividuals contains _)
+        val childrenSnapshotIndividuals = selectChildrenIndividuals(mustLiveSnapshotIndividuals)
+        println("childGenomes are: " + s"${childrenSnapshotIndividuals.size}")
+        val newIndividualDescriptors = hatchPopulation(childrenSnapshotIndividuals, evaluator)
         currentIndividualDescriptors.++=:(newIndividualDescriptors)
-        currentIndividualDescriptors foreach {
-          _.tempParams.clear()
-        }
         lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
         populationAge += 1
         println(s"Population aged one more year: $populationAge")
         isPipelineFree = true
     })
+  }
+
+  private def selectWeakIndividuals(individualDescriptors: List[IndividualDescriptor]): List[IndividualDescriptor] = {
+    individualDescriptors filter (_.doomedToDie)
+  }
+
+  private def selectChildrenIndividuals(processedSnapshot: List[IndividualDescriptor]): List[IndividualDescriptor] ={
+    processedSnapshot filterNot {
+      currentElement =>
+        currentIndividualDescriptors.exists(_.genome.equals(currentElement.genome))
+    }
   }
 
   private def setFitnesses(): Unit = {
@@ -116,10 +136,10 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  def killIndividuals(): Unit = {
+  private def killIndividuals(weakIndividuals: List[IndividualDescriptor]): Unit = {
     currentIndividualDescriptors filter {
-      individualDescriptor =>
-        individualDescriptor.doomedToDie
+      descriptor =>
+        weakIndividuals.exists(_.genome.equals(descriptor.genome))
     } foreach {
       doomedDescriptor =>
         doomedDescriptor.individualEvaluationPair match {
@@ -133,26 +153,32 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
+  private def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
                      (implicit timeout: Timeout): List[IndividualDescriptor] = {
     descriptors foreach {
       descriptor =>
-        val individual = giveBirthToIndividual(descriptor.genome)
-        val evaluationAgent = getEvaluationAgent(individual, evaluator)
-        createSubscription(individual, evaluationAgent, "individual_signal")
-        initializeNewbornIndividual(individual)
-        descriptor.individualEvaluationPair = Some(IndividualEvaluationPair(individual, evaluationAgent))
+        if(!isAlreadyHatched(descriptor)) {
+          val individual = giveBirthToIndividual(descriptor.genome)
+          val evaluationAgent = getEvaluationAgent(individual, evaluator)
+          createSubscription(individual, evaluationAgent, "individual_signal")
+          initializeNewbornIndividual(individual)
+          descriptor.individualEvaluationPair = Some(IndividualEvaluationPair(individual, evaluationAgent))
+        }
     }
     descriptors
   }
 
-  def giveBirthToIndividual(genome: Genome): ActorRef = {
+  private def isAlreadyHatched(individualDescriptor: IndividualDescriptor): Boolean ={
+    individualDescriptor.individualEvaluationPair.nonEmpty
+  }
+
+  protected def giveBirthToIndividual(genome: Genome): ActorRef = {
     val individual = context.actorOf(Props.apply(individualActorType, genome))
     context.watch(individual)
     individual
   }
 
-  def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
+  private def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
     try {
       val evaluationAgentFuture = evaluator ? GetEvaluationAgent
       val evaluationAgent = Await.result(evaluationAgentFuture, timeout.duration).asInstanceOf[ActorRef]
@@ -162,14 +188,15 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  def createSubscription(to: ActorRef, subscriber: ActorRef, classification: String = ""): Unit = {
+  protected def createSubscription(to: ActorRef, subscriber: ActorRef, classification: String = ""): Unit = {
     to ! AddSubscriber(subscriber, classification)
   }
 
-  def initializeNewbornIndividual(individual: ActorRef): ActorRef = {
+  protected def initializeNewbornIndividual(individual: ActorRef): ActorRef = {
     individual ! Initialize(environmentalData)
     individual
   }
+
 }
 
 case class IndividualDescriptor(genome: Genome,
@@ -177,8 +204,8 @@ case class IndividualDescriptor(genome: Genome,
                                 var currentFitness: Float = 0.0f,
                                 var doomedToDie: Boolean = false,
                                 var retainGenome: Boolean = false,
-                                additionalParams: mutable.Map[String, Any] = mutable.Map.empty[String, Any],
-                                tempParams: mutable.Map[String, Any] = mutable.Map.empty[String, Any]
+                                var additionalParams: immutable.Map[String, Any] = immutable.Map[String, Any](),
+                                var tempParams: immutable.Map[String, Any] = immutable.Map[String, Any]()
                                )
 
 case class IndividualEvaluationPair(individual: ActorRef, evaluationAgent: ActorRef)

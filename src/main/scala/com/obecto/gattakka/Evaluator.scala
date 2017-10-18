@@ -2,6 +2,8 @@ package com.obecto.gattakka
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import com.obecto.gattakka.messages.evaluation.GetEvaluationAgent
+import com.obecto.gattakka.messages.population.RefreshPopulation
+import scala.concurrent.duration._
 
 
 class Evaluator(evaluationAgentType: Class[_ <: EvaluationAgent], environmentalData: Any) extends Actor {
