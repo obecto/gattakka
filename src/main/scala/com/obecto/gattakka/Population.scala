@@ -95,7 +95,7 @@ class Population(individualActorType: Class[_ <: Individual],
         println("childGenomes are: " + s"${childrenSnapshotIndividuals.size}")
         val newIndividualDescriptors = hatchPopulation(childrenSnapshotIndividuals, evaluator)
         currentIndividualDescriptors.++=:(newIndividualDescriptors)
-        lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
+        publishPipelineResult()
         populationAge += 1
         println(s"Population aged one more year: $populationAge")
         isPipelineFree = true
@@ -195,6 +195,11 @@ class Population(individualActorType: Class[_ <: Individual],
   protected def initializeNewbornIndividual(individual: ActorRef): ActorRef = {
     individual ! Initialize(environmentalData)
     individual
+  }
+
+  protected def publishPipelineResult(): Unit ={
+    lookupBusImpl.publish(HandleEvent("pipeline_finished", PipelineFinished))
+
   }
 
 }
