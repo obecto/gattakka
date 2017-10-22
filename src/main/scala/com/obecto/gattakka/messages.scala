@@ -25,7 +25,8 @@ object messages {
   object evaluation {
 
     case object GetFitness
-    case object GetEvaluationAgent
+    case class GetEvaluationAgent(id: String)
+    case class SpawnEvaluationAgent(id: String)
     case object KillEvaluationAgent
   }
 

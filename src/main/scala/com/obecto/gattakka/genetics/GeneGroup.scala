@@ -9,10 +9,6 @@ trait GeneGroup extends Gene {
   def length: Int
 
   def toByteArray: Array[Byte]
-
-  def fromByteArray(from: Array[Byte]): GeneGroup
-
-  def setRandomValue(): Unit
-
+  
   def MD5HashStructure: String
 }

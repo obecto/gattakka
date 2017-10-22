@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, PoisonPill, Props, Terminated}
 import akka.pattern._
 import akka.util.Timeout
 import com.obecto.gattakka.genetics.Genome
-import com.obecto.gattakka.messages.evaluation.{GetEvaluationAgent, GetFitness}
+import com.obecto.gattakka.messages.evaluation.{GetFitness, SpawnEvaluationAgent}
 import com.obecto.gattakka.messages.eventbus.{AddSubscriber, HandleEvent}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.{PipelineFinished, RefreshPopulation, RunPipeline}
@@ -15,6 +15,9 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
 object Population {
+
+   var BOT_COUNTER_ID: Long = 0
+
   def props(individualActorType: Class[_ <: Individual],
             initialGenomes: List[Genome],
             evaluator: ActorRef,
@@ -24,6 +27,12 @@ object Population {
     Props(classOf[Population], individualActorType,
       initialGenomes, evaluator: ActorRef, pipelineActor, environmentalData)
   }
+
+   def getUniqueBotId: String ={
+    BOT_COUNTER_ID +=1
+    BOT_COUNTER_ID.toString
+  }
+
 }
 
 class Population(individualActorType: Class[_ <: Individual],
@@ -40,19 +49,21 @@ class Population(individualActorType: Class[_ <: Individual],
   private var needToRefreshPipeline: Int = 0
   private var populationAge: Int = 0
   private var isPipelineFree: Boolean = true
+  private var botCounterId: Long = 0
 
   private val lookupBusImpl = new LookupBusImplementation
 
   private val firstIndividualDescriptors: List[IndividualDescriptor] = initialGenomes map {
     genome: Genome =>
-      IndividualDescriptor(genome, None)
+      IndividualDescriptor(Population.getUniqueBotId, genome, None)
   }
 
   private val currentIndividualDescriptors: ListBuffer[IndividualDescriptor] =
     hatchPopulation(firstIndividualDescriptors, evaluator).to[ListBuffer]
 
+  def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
 
-  def receive: Receive = {
+  def receive: Receive = customReceive orElse {
 
     case AddSubscriber(subscriber, classification) =>
       lookupBusImpl.subscribe(subscriber, classification)
@@ -158,8 +169,8 @@ class Population(individualActorType: Class[_ <: Individual],
     descriptors foreach {
       descriptor =>
         if(!isAlreadyHatched(descriptor)) {
-          val individual = giveBirthToIndividual(descriptor.genome)
-          val evaluationAgent = getEvaluationAgent(individual, evaluator)
+          val individual = giveBirthToIndividual(descriptor.id,descriptor.genome)
+          val evaluationAgent = spawnEvaluationAgent(individual, evaluator)
           createSubscription(individual, evaluationAgent, "individual_signal")
           initializeNewbornIndividual(individual)
           descriptor.individualEvaluationPair = Some(IndividualEvaluationPair(individual, evaluationAgent))
@@ -172,15 +183,15 @@ class Population(individualActorType: Class[_ <: Individual],
     individualDescriptor.individualEvaluationPair.nonEmpty
   }
 
-  protected def giveBirthToIndividual(genome: Genome): ActorRef = {
-    val individual = context.actorOf(Props.apply(individualActorType, genome))
+  protected def giveBirthToIndividual(id: String, genome: Genome): ActorRef = {
+    val individual = context.actorOf(Props.apply(individualActorType, genome), id)
     context.watch(individual)
     individual
   }
 
-  private def getEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
+  private def spawnEvaluationAgent(individual: ActorRef, evaluator: ActorRef)(implicit timeout: Timeout): ActorRef = {
     try {
-      val evaluationAgentFuture = evaluator ? GetEvaluationAgent
+      val evaluationAgentFuture = evaluator ? SpawnEvaluationAgent(individual.path.name)
       val evaluationAgent = Await.result(evaluationAgentFuture, timeout.duration).asInstanceOf[ActorRef]
       evaluationAgent
     } catch {
@@ -204,7 +215,8 @@ class Population(individualActorType: Class[_ <: Individual],
 
 }
 
-case class IndividualDescriptor(genome: Genome,
+case class IndividualDescriptor(id: String,
+                                genome: Genome,
                                 var individualEvaluationPair: Option[IndividualEvaluationPair],
                                 var currentFitness: Float = 0.0f,
                                 var doomedToDie: Boolean = false,

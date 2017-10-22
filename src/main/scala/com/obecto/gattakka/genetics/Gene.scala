@@ -12,10 +12,6 @@ trait Gene {
   def length: Int
   def toByteArray: Array[Byte]
 
-  def fromByteArray(from: Array[Byte]): Gene
-
-  def setRandomValue(): Unit
-
   def MD5HashStructure: String
 
 }
@@ -56,15 +52,6 @@ case class IntegerGene(length: Int, var value: BigInt) extends Gene {
     // println(s"unpadded length is: ${unpadded.length} with value $value")
     val padding = Array[Byte]().padTo(length / 8 - unpadded.length, 0.toByte)
     padding ++ unpadded
-  }
-
-  def fromByteArray(from: Array[Byte]): Gene = {
-    value = BigInt(from)
-    this
-  }
-
-  def setRandomValue(): Unit = {
-    value = BigInt(length, rnd)
   }
 
   def MD5HashStructure: String = {

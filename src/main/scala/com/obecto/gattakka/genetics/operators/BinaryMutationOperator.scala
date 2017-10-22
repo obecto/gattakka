@@ -1,7 +1,7 @@
 package com.obecto.gattakka.genetics.operators
 
 import com.obecto.gattakka.genetics.{Chromosome, Genome}
-import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator}
+import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator, Population}
 
 import scala.collection.mutable.ListBuffer
 
@@ -13,29 +13,28 @@ trait BinaryMutationOperator extends MutationBaseOperator with PipelineOperator 
 
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
 
-    val withoutElites = snapshot filter {
+    val withoutElitesAndDoomed = snapshot filter {
       individualDescriptor =>
         var isElite = false
         individualDescriptor.tempParams.get("elite") match {
           case Some(elite) => isElite = elite.asInstanceOf[Boolean]
           case None =>
         }
-        !isElite
+        !(isElite || individualDescriptor.doomedToDie)
     }
 
     val mutatedIndividuals: ListBuffer[IndividualDescriptor] = ListBuffer.empty
 
     val rng: scala.util.Random = scala.util.Random
 
-    withoutElites foreach {
+    withoutElitesAndDoomed foreach {
       individualDescriptor =>
-
         val genome = individualDescriptor.genome
         var mutationOccured = false
-        var mutationOccuredNum = 0
 
         val newChromosomes = genome.chromosomes map {
           chromosome =>
+
             val chromosomeByteArray = chromosome.toByteArray
             val mutatedByteArray = chromosomeByteArray map {
               byte =>
@@ -54,8 +53,7 @@ trait BinaryMutationOperator extends MutationBaseOperator with PipelineOperator 
 
         if (mutationOccured) {
           individualDescriptor.doomedToDie = true
-          mutationOccuredNum += 1
-          mutatedIndividuals += IndividualDescriptor(new Genome(newChromosomes), None)
+          mutatedIndividuals += IndividualDescriptor(Population.getUniqueBotId, new Genome(newChromosomes), None)
         }
     }
 

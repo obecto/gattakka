@@ -5,22 +5,15 @@ import scala.collection.mutable
 /**
   * Created by gbarn_000 on 7/25/2017.
   */
-class Chromosome(from: Array[Byte] = Array()) extends GeneGroup {
+class Chromosome(from: Array[Byte] = Array()) extends GeneGroup{
 
-  val genes: List[Gene] = List(IntegerGene(32), IntegerGene(32))
-  var length: Int = getLength
+  var genes: List[Gene] = List(IntegerGene(32), IntegerGene(32))
+  val length: Int = getLength
 
   def value: Any = null
 
   if (from.nonEmpty && from.length >= length / 8) {
     fromByteArray(from)
-  }
-
-  def setRandomValue(): Unit = {
-    genes foreach {
-      gene =>
-        gene.setRandomValue()
-    }
   }
 
   def getLength: Int = {
@@ -31,15 +24,16 @@ class Chromosome(from: Array[Byte] = Array()) extends GeneGroup {
     length
   }
 
-  def fromByteArray(from: Array[Byte]): GeneGroup = {
+  private def fromByteArray(from: Array[Byte]): List[Gene] = {
     var sumOfGeneLengths = 0
-    genes foreach {
+    genes = genes map {
       gene =>
         val cutByteArrayForOneGene = from.slice(sumOfGeneLengths, sumOfGeneLengths + gene.length / 8)
         sumOfGeneLengths += cutByteArrayForOneGene.length
-        gene.fromByteArray(cutByteArrayForOneGene)
+
+        IntegerGene(gene.length, cutByteArrayForOneGene)
     }
-    this
+    genes
   }
 
   def toByteArray: Array[Byte] = {
@@ -60,5 +54,4 @@ class Chromosome(from: Array[Byte] = Array()) extends GeneGroup {
     }
     structureMD5Hash
   }
-
 }

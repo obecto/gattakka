@@ -46,13 +46,14 @@ object RunGattakka extends App {
 
   val system = ActorSystem("gattakka")
 
+  import system.dispatcher
 
   val pipelineOperators: List[PipelineOperator] = List(new EliteOperator {}, new BinaryMutationOperator {
-    override val mutationChance: Float = 0.02f
+    override val mutationChance: Float = 0.002f
   })
   val pipelineActor = system.actorOf(Pipeline.props(pipelineOperators))
-
   val evaluator = system.actorOf(Evaluator.props(classOf[CustomEvaluationAgent]), "evaluator")
+
   val populationActor = system.actorOf(Population.props(
     classOf[CustomIndividualActor],
     initialChromosomes,
@@ -60,9 +61,8 @@ object RunGattakka extends App {
     pipelineActor
   ), "population")
 
-  import system.dispatcher
 
-  system.scheduler.schedule(1 seconds, 10 milliseconds, populationActor, RefreshPopulation)
+  system.scheduler.schedule(1 seconds, 100 milliseconds, populationActor, RefreshPopulation)
 
 
 }
