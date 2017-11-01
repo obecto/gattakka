@@ -16,7 +16,7 @@ import scala.concurrent.Await
 
 object Population {
 
-   var BOT_COUNTER_ID: Long = 0
+  var BOT_COUNTER_ID: Long = 0
 
   def props(individualActorType: Class[_ <: Individual],
             initialGenomes: List[Genome],
@@ -215,15 +215,15 @@ class Population(individualActorType: Class[_ <: Individual],
 
 }
 
-case class IndividualDescriptor(id: String,
-                                genome: Genome,
-                                var individualEvaluationPair: Option[IndividualEvaluationPair],
-                                var currentFitness: Float = 0.0f,
-                                var doomedToDie: Boolean = false,
-                                var retainGenome: Boolean = false,
-                                var additionalParams: immutable.Map[String, Any] = immutable.Map[String, Any](),
-                                var tempParams: immutable.Map[String, Any] = immutable.Map[String, Any]()
-                               )
+case class IndividualDescriptor(
+  id: String,
+  genome: Genome,
+  var individualEvaluationPair: Option[IndividualEvaluationPair],
+  var currentFitness: Float = 0.0f,
+  var doomedToDie: Boolean = false,
+  var retainGenome: Boolean = false,
+  var additionalParams: immutable.Map[String, Any] = immutable.Map[String, Any](),
+  var tempParams: immutable.Map[String, Any] = immutable.Map[String, Any]()
+)
 
 case class IndividualEvaluationPair(individual: ActorRef, evaluationAgent: ActorRef)
-

@@ -15,7 +15,6 @@ import scala.collection.immutable
 class Pipeline(implicit val pipelineOperators: Seq[PipelineOperator]) extends Actor {
 
   def receive: Receive = {
-
     case RunPipeline(snapshot) =>
       sender ! runPipeline(snapshot)
   }

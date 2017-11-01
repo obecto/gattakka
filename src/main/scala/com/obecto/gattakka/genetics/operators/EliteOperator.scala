@@ -2,13 +2,12 @@ package com.obecto.gattakka.genetics.operators
 
 import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator}
 
-/**
-  * Created by gbarn_000 on 7/25/2017.
-  */
 trait EliteOperator extends PipelineOperator {
 
+  def elitePercentage: Double
+
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
-    val sorted = sortByFitness(snapshot)
+    val sorted = snapshot sortBy (-_.currentFitness)
     val elites = sorted.slice(0, (snapshot.size * elitePercentage).toInt)
     elites foreach {
       elite =>
@@ -17,14 +16,5 @@ trait EliteOperator extends PipelineOperator {
     }
     snapshot
   }
-
-  def elitePercentage: Float = 0.2f
-
-  def sortByFitness(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
-    snapshot sortBy {
-      -_.currentFitness
-    }
-  }
-
 
 }
