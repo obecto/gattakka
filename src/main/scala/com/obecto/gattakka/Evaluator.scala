@@ -2,14 +2,19 @@ package com.obecto.gattakka
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import com.obecto.gattakka.messages.evaluation.{GetEvaluationAgent, SpawnEvaluationAgent}
-import com.obecto.gattakka.messages.population.RefreshPopulation
+import com.obecto.gattakka.messages.population.{IntroducePopulation, RefreshPopulation}
 
 import scala.concurrent.duration._
 
 
 class Evaluator(evaluationAgentType: Class[_ <: EvaluationAgent], environmentalData: Any) extends Actor {
 
+  var populationActor: ActorRef = ActorRef.noSender
+
    def receive: Receive = customReceive orElse {
+
+     case IntroducePopulation =>
+       populationActor = sender()
 
      case GetEvaluationAgent(id: String) =>
        sender() ! tryGetEvaluationAgent(id)
@@ -38,5 +43,5 @@ class Evaluator(evaluationAgentType: Class[_ <: EvaluationAgent], environmentalD
 
 object Evaluator {
 
-  def props(evaluationAgentType: Class[_ <: EvaluationAgent]): Props = Props(classOf[Evaluator], evaluationAgentType, "")
+  def props(evaluatorType: Class[_ <: Evaluator], evaluationAgentType: Class[_ <: EvaluationAgent]): Props = Props(evaluatorType, evaluationAgentType, "")
 }

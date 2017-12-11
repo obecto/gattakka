@@ -19,8 +19,8 @@ class RouletteWheelParentSelectionStrategy(rng: scala.util.Random = scala.util.R
     }
   }
 
-  private def calculateTotalFitness(individualDescriptors: Seq[IndividualDescriptor]): Float = {
-    var totalFitness = 0.0f
+  private def calculateTotalFitness(individualDescriptors: Seq[IndividualDescriptor]): Double = {
+    var totalFitness = 0.0
     individualDescriptors.foreach(totalFitness += _.currentFitness)
     totalFitness
   }

@@ -7,7 +7,7 @@ import com.obecto.gattakka.messages.evaluation.GetFitness
   * Created by gbarn_000 on 7/19/2017.
   */
 abstract class EvaluationAgent extends Actor {
-  var fitness = 0.0f
+  var fitness: Double = 0.0
 
   def receive: Receive = {
 
@@ -20,7 +20,7 @@ abstract class EvaluationAgent extends Actor {
 
   def onSignalReceived(data: Any): Unit = data match {
     //TODO override function to set fitness
-    case data: Float =>
+    case data: Double =>
       fitness = data
   }
 

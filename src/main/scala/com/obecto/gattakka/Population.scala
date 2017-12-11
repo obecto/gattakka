@@ -7,7 +7,7 @@ import com.obecto.gattakka.genetics.Genome
 import com.obecto.gattakka.messages.evaluation.{GetFitness, SpawnEvaluationAgent}
 import com.obecto.gattakka.messages.eventbus.{AddSubscriber, HandleEvent}
 import com.obecto.gattakka.messages.individual.Initialize
-import com.obecto.gattakka.messages.population.{PipelineFinished, RefreshPopulation, RunPipeline}
+import com.obecto.gattakka.messages.population.{IntroducePopulation, PipelineFinished, RefreshPopulation, RunPipeline}
 
 import scala.collection.immutable
 import scala.collection.mutable
@@ -50,6 +50,8 @@ class Population(individualActorType: Class[_ <: Individual],
   private var populationAge: Int = 0
   private var isPipelineFree: Boolean = true
   private var botCounterId: Long = 0
+
+  evaluator ! IntroducePopulation
 
   private val lookupBusImpl = new LookupBusImplementation
 
@@ -135,10 +137,10 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  private def getFitness(evaluationAgent: ActorRef): Float = {
+  private def getFitness(evaluationAgent: ActorRef): Double = {
     try {
       val fitnessFuture = evaluationAgent ? GetFitness
-      Await.result(fitnessFuture, timeout.duration).asInstanceOf[Float]
+      Await.result(fitnessFuture, timeout.duration).asInstanceOf[Double]
     } catch {
       //TODO fix this exception
       case exc: Exception =>
@@ -219,7 +221,7 @@ case class IndividualDescriptor(
   id: String,
   genome: Genome,
   var individualEvaluationPair: Option[IndividualEvaluationPair],
-  var currentFitness: Float = 0.0f,
+  var currentFitness: Double = 0.0,
   var doomedToDie: Boolean = false,
   var retainGenome: Boolean = false,
   var additionalParams: immutable.Map[String, Any] = immutable.Map[String, Any](),

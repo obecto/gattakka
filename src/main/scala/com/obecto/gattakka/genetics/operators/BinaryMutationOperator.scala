@@ -13,7 +13,7 @@ trait BinaryMutationOperator extends MutationBaseOperator with PipelineOperator 
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
 
     val (onlyElite, withoutElite) = snapshot partition {
-      _.tempParams.getOrElse("elite", false) == false
+      _.tempParams.getOrElse("elite", false) != false
     }
 
     val withoutDoomedAndElite = withoutElite filter {

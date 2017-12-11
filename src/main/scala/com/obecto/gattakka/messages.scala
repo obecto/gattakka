@@ -14,6 +14,8 @@ object messages {
 
     case object PipelineFinished
 
+    case object IntroducePopulation
+
   }
 
   object individual {
