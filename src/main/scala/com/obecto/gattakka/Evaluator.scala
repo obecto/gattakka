@@ -43,5 +43,5 @@ class Evaluator(evaluationAgentType: Class[_ <: EvaluationAgent], environmentalD
 
 object Evaluator {
 
-  def props(evaluatorType: Class[_ <: Evaluator], evaluationAgentType: Class[_ <: EvaluationAgent]): Props = Props(evaluatorType, evaluationAgentType, "")
+  def props(evaluationAgentType: Class[_ <: EvaluationAgent]): Props = Props(classOf[Evaluator], evaluationAgentType, "")
 }

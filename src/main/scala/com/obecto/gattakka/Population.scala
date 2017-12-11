@@ -89,11 +89,11 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  private def makeSnapshot: List[IndividualDescriptor] = {
+  protected def makeSnapshot: List[IndividualDescriptor] = {
     currentIndividualDescriptors.toList map (_.copy())
   }
 
-  private def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
+  protected def runPipeline(snapshot: List[IndividualDescriptor]): Unit = {
     println(s"Population size is: ${currentIndividualDescriptors.size}")
     isPipelineFree = false
     val pipelineFuture = pipelineActor ? RunPipeline(snapshot)
@@ -126,7 +126,7 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  private def setFitnesses(): Unit = {
+  protected def setFitnesses(): Unit = {
     currentIndividualDescriptors foreach {
       desc =>
         desc.individualEvaluationPair match {
@@ -137,7 +137,7 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  private def getFitness(evaluationAgent: ActorRef): Double = {
+  protected def getFitness(evaluationAgent: ActorRef): Double = {
     try {
       val fitnessFuture = evaluationAgent ? GetFitness
       Await.result(fitnessFuture, timeout.duration).asInstanceOf[Double]
@@ -166,7 +166,7 @@ class Population(individualActorType: Class[_ <: Individual],
     }
   }
 
-  private def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
+  protected def hatchPopulation(descriptors: List[IndividualDescriptor], evaluator: ActorRef)
                      (implicit timeout: Timeout): List[IndividualDescriptor] = {
     descriptors foreach {
       descriptor =>
@@ -185,7 +185,7 @@ class Population(individualActorType: Class[_ <: Individual],
     individualDescriptor.individualEvaluationPair.nonEmpty
   }
 
-  protected def giveBirthToIndividual(id: String, genome: Genome): ActorRef = {
+  private def giveBirthToIndividual(id: String, genome: Genome): ActorRef = {
     val individual = context.actorOf(Props.apply(individualActorType, genome), id)
     context.watch(individual)
     individual

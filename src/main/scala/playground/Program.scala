@@ -63,7 +63,7 @@ object RunGattakka extends App {
   )
 
   val pipelineActor = system.actorOf(Pipeline.props(pipelineOperators), "pipeline")
-  val evaluator = system.actorOf(Evaluator.props(classOf[Evaluator],classOf[CustomEvaluationAgent]), "evaluator")
+  val evaluator = system.actorOf(Evaluator.props(classOf[CustomEvaluationAgent]), "evaluator")
   val populationActor = system.actorOf(Population.props(
     classOf[CustomIndividualActor],
     initialChromosomes,
