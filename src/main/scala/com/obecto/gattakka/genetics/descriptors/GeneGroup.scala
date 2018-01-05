@@ -11,7 +11,7 @@ object GeneGroupDescriptor {
   }
 }
 
-case class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor]) extends GeneDescriptor {
+class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor]) extends GeneDescriptor {
 
   val length = geneDescriptors.foldLeft(0)(_ + _.length)
 

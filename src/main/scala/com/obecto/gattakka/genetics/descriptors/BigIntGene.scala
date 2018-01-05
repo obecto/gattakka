@@ -8,7 +8,8 @@ object BigIntGeneDescriptor {
   }
 }
 
-case class BigIntGeneDescriptor(length: Int) extends GeneDescriptor {
+class BigIntGeneDescriptor(val length: Int) extends GeneDescriptor {
+  val byteLength: Int = (length.toDouble / 8).ceil.toInt
   val maxValue: BigInt = (BigInt(1) << length) - 1
   val maxValueDouble: Double = maxValue.doubleValue
 
@@ -17,7 +18,7 @@ case class BigIntGeneDescriptor(length: Int) extends GeneDescriptor {
   }
 
   def apply(byteArray: Array[Byte]): BigIntGene = {
-    new BigIntGene(BigInt(byteArray.take(length)), this)
+    new BigIntGene(BigInt(byteArray.take(byteLength)), this)
   }
 
   def apply(value: BigInt): BigIntGene = {
@@ -36,7 +37,7 @@ case class BigIntGene(value: BigInt, descriptor: BigIntGeneDescriptor) extends G
       unpadded = unpadded.slice(1, unpadded.length)
     }
     // println(s"unpadded length is: ${unpadded.length} with value $value")
-    val padding = Array[Byte]().padTo(descriptor.length / 8 - unpadded.length, 0.toByte)
+    val padding = Array[Byte]().padTo(descriptor.byteLength - unpadded.length, 0.toByte)
     padding ++ unpadded
   }
 

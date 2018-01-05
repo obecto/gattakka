@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.obecto.gattakka._
 import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator}
 import com.obecto.gattakka.genetics.{Chromosome, Genome}
-import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, BigIntGeneDescriptor, GeneGroup, BigIntGene}
+import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, DoubleGeneDescriptor, LongGeneDescriptor}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.RefreshPopulation
 
@@ -14,8 +14,8 @@ import scala.concurrent.duration._
 
 object Definitions {
   val chromosomeDescriptor = GeneGroupDescriptor(
-    BigIntGeneDescriptor(8),
-    BigIntGeneDescriptor(8)
+    DoubleGeneDescriptor(-100, 100),
+    DoubleGeneDescriptor(-100, 100)
   )
 }
 
@@ -23,13 +23,12 @@ class CustomEvaluationAgent extends EvaluationAgent {
 
   override def onSignalReceived(data: Any): Unit = data match {
     case genome: Genome =>
-      val chromosome = genome.chromosomes.head.toGene.asInstanceOf[GeneGroup]
-      val x = chromosome.genes(0).asInstanceOf[BigIntGene].toDouble * 200 - 100
-      val y = chromosome.genes(1).asInstanceOf[BigIntGene].toDouble * 200 - 100
+      val values = genome.chromosomes.head.toGene.value.asInstanceOf[List[Double]]
+      val x = values(0)
+      val y = values(1)
       val temp1 = Math.sin(Math.sqrt(x * x + y * y))
       val temp2 = 1 + 0.001 * (x * x + y * y)
-      fitness = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toFloat
-    //println(s"Fitness is: $fitness")
+      fitness = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toDouble
   }
 }
 
@@ -72,7 +71,7 @@ object RunGattakka extends App {
   ), "population")
 
 
-  system.scheduler.schedule(1 seconds, 100 milliseconds, populationActor, RefreshPopulation)
+  system.scheduler.schedule(1 seconds, 50 milliseconds, populationActor, RefreshPopulation)
 
 
 }
