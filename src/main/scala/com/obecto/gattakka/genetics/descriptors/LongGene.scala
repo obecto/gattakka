@@ -3,12 +3,12 @@ package com.obecto.gattakka.genetics.descriptors
 import scala.math.BigInt
 
 object LongGeneDescriptor {
-  def apply(from: Long = 0, to: Long): LongGeneDescriptor = {
-    new LongGeneDescriptor(from, to)
+  def apply(bits: Int): LongGeneDescriptor = {
+    LongGeneDescriptor(0, 1l << bits)
   }
 }
 
-class LongGeneDescriptor(val from: Long, val to: Long) extends GeneDescriptor {
+case class LongGeneDescriptor(val from: Long, val to: Long) extends GeneDescriptor {
   val range: Long = to - from
   val length: Int = (Math.log((range + 1).abs.toDouble) / Math.log(2)).ceil.toInt
   val byteLength: Int = (length.toDouble / 8).ceil.toInt

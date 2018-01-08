@@ -7,7 +7,8 @@ trait EliteOperator extends PipelineOperator {
   def elitePercentage: Double
 
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
-    val sorted = snapshot sortBy (-_.currentFitness)
+    val withoutDoomed = snapshot filter (!_.doomedToDie)
+    val sorted = withoutDoomed sortBy (-_.currentFitness)
     val elites = sorted.slice(0, (snapshot.size * elitePercentage).ceil.toInt)
     elites foreach {
       elite =>

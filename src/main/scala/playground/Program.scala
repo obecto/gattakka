@@ -2,9 +2,9 @@ package playground
 
 import akka.actor.ActorSystem
 import com.obecto.gattakka._
-import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator}
-import com.obecto.gattakka.genetics.{Chromosome, Genome}
-import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, DoubleGeneDescriptor, LongGeneDescriptor}
+import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator, DeduplicationOperator}
+import com.obecto.gattakka.genetics.{Genome}
+import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, DoubleGeneDescriptor}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.RefreshPopulation
 
@@ -53,6 +53,7 @@ object RunGattakka extends App {
   import system.dispatcher
 
   val pipelineOperators: List[PipelineOperator] = List(
+    new DeduplicationOperator {},
     new EliteOperator {
       val elitePercentage = 0.2
     },

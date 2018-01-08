@@ -1,5 +1,5 @@
 package com.obecto.gattakka.genetics
 
-class Genome(val chromosomes: List[Chromosome]) {
+case class Genome(val chromosomes: List[Chromosome]) {
 
 }

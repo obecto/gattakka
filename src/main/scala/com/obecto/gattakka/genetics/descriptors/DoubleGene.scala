@@ -4,12 +4,13 @@ import scala.math.BigInt
 import scala.math.BigDecimal
 
 object DoubleGeneDescriptor {
-  def apply(from: Double = 0, to: Double, resolution: Int = 8): DoubleGeneDescriptor = {
-    new DoubleGeneDescriptor(from, to, resolution)
+  def apply(resolution: Int = 8): DoubleGeneDescriptor = {
+    DoubleGeneDescriptor(0, 1, resolution)
   }
 }
 
-class DoubleGeneDescriptor(val from: Double, val to: Double, val length: Int) extends GeneDescriptor {
+case class DoubleGeneDescriptor(val from: Double, val to: Double, val resolution: Int = 8) extends GeneDescriptor {
+  def length = resolution
   val byteLength: Int = (length.toDouble / 8).ceil.toInt
   val range: Double = to - from
   val maxUnscaledBigInt = BigInt(1) << length

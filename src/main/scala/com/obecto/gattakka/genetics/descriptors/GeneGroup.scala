@@ -3,15 +3,15 @@ package com.obecto.gattakka.genetics.descriptors
 //import scala.collection.mutable
 
 object GeneGroupDescriptor {
-  def apply(geneDescriptors: List[GeneDescriptor]): GeneGroupDescriptor = {
-    new GeneGroupDescriptor(geneDescriptors)
+  def apply(tag: String, geneDescriptors: GeneDescriptor*): GeneGroupDescriptor = {
+    GeneGroupDescriptor(geneDescriptors.toList, tag)
   }
   def apply(geneDescriptors: GeneDescriptor*): GeneGroupDescriptor = {
-    new GeneGroupDescriptor(geneDescriptors.toList)
+    GeneGroupDescriptor(geneDescriptors.toList)
   }
 }
 
-class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor]) extends GeneDescriptor {
+case class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor], tag: String = "") extends GeneDescriptor {
 
   val length = geneDescriptors.foldLeft(0)(_ + _.length)
 
