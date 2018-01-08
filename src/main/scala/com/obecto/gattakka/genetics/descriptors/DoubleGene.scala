@@ -4,7 +4,7 @@ import scala.math.BigInt
 import scala.math.BigDecimal
 
 object DoubleGeneDescriptor {
-  def apply(resolution: Int = 8): DoubleGeneDescriptor = {
+  def apply(resolution: Int): DoubleGeneDescriptor = {
     DoubleGeneDescriptor(0, 1, resolution)
   }
 }
