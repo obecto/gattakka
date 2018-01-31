@@ -48,7 +48,7 @@ class Population(individualActorType: Class[_ <: Individual],
   private var needToRefreshPipeline: Int = 0
   private var populationAge: Int = 0
   private var isPipelineFree: Boolean = true
-  private var botCounterId: Long = 0
+  // private var botCounterId: Long = 0
 
   evaluator ! IntroducePopulation
 
@@ -69,19 +69,20 @@ class Population(individualActorType: Class[_ <: Individual],
     case AddSubscriber(subscriber, classification) =>
       lookupBusImpl.subscribe(subscriber, classification)
 
-    case RefreshPopulation =>
-      handleRefreshPipelineRequest()
+    case RefreshPopulation(queue) =>
+      handleRefreshPipelineRequest(queue)
 
     case Terminated(ref) =>
     //println("My child died :( " + ref.path.name)
 
   }
 
-  protected def handleRefreshPipelineRequest(): Unit = {
+  protected def handleRefreshPipelineRequest(shouldQueue: Boolean): Unit = {
     if (!isPipelineFree) {
-      needToRefreshPipeline += 1
-      println(needToRefreshPipeline)
-      println("Pipeline is running")
+      if (shouldQueue) {
+        needToRefreshPipeline += 1
+        println(s"Pipeline is running (queued ${needToRefreshPipeline} times)")
+      }
     } else {
       setFitnesses()
       runPipeline(makeSnapshot)

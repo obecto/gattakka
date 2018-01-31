@@ -10,7 +10,7 @@ object messages {
 
     case class RunPipeline(snapshot: List[IndividualDescriptor])
 
-    case object RefreshPopulation
+    case class RefreshPopulation(queue: Boolean = true)
 
     case object PipelineFinished
 

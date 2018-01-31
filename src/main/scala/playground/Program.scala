@@ -69,6 +69,9 @@ object RunGattakka extends App {
       val bitFlipChance = 2.0 / 16
     },
     new DeduplicationOperator {},
+    new LimitSizeOperator {
+      val targetPopulationSize = 50
+    },
   )
 
   val pipelineActor = system.actorOf(Pipeline.props(pipelineOperators), "pipeline")
