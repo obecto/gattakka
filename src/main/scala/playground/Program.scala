@@ -2,7 +2,7 @@ package playground
 
 import akka.actor.ActorSystem
 import com.obecto.gattakka._
-import com.obecto.gattakka.genetics.operators.{BinaryMutationOperator, EliteOperator, DeduplicationOperator}
+import com.obecto.gattakka.genetics.operators
 import com.obecto.gattakka.genetics.{Genome}
 import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, DoubleGeneDescriptor}
 import com.obecto.gattakka.messages.individual.Initialize
@@ -14,8 +14,8 @@ import scala.concurrent.duration._
 
 object Definitions {
   val chromosomeDescriptor = GeneGroupDescriptor(
-    DoubleGeneDescriptor(-100, 100),
-    DoubleGeneDescriptor(-100, 100)
+    DoubleGeneDescriptor(-200, 200, 16),
+    DoubleGeneDescriptor(-200, 200, 16)
   )
 }
 
@@ -52,14 +52,23 @@ object RunGattakka extends App {
 
   import system.dispatcher
 
+  import operators._
   val pipelineOperators: List[PipelineOperator] = List(
-    new DeduplicationOperator {},
     new EliteOperator {
-      val elitePercentage = 0.2
+      val elitePercentage = 0.1
+    },
+    new UniformCrossoverReplicationOperator {
+      val replicationChance = 0.5
+      override val keepFirstChildOnly = true
+      // val parentSelectionStrategy = new RouletteWheelSelectionStrategy()
+      val parentSelectionStrategy = new TournamentSelectionStrategy(4)
+      // val parentSelectionStrategy = new TournamentSelectionStrategy(1)
     },
     new BinaryMutationOperator {
-      val mutationChance = 0.02
-    }
+      val mutationChance = 0.2
+      val bitFlipChance = 2.0 / 16
+    },
+    new DeduplicationOperator {},
   )
 
   val pipelineActor = system.actorOf(Pipeline.props(pipelineOperators), "pipeline")
@@ -72,7 +81,10 @@ object RunGattakka extends App {
   ), "population")
 
 
-  system.scheduler.schedule(1 seconds, 50 milliseconds, populationActor, RefreshPopulation)
+  system.scheduler.schedule(1 seconds, 80 milliseconds, populationActor, RefreshPopulation(false))
+  system.scheduler.scheduleOnce((1 seconds) + (80 milliseconds) * 100) {
+    system.terminate()
+  }
 
 
 }

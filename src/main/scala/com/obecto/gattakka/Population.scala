@@ -220,11 +220,15 @@ case class IndividualDescriptor(
   id: String,
   genome: Genome,
   var individualEvaluationPair: Option[IndividualEvaluationPair],
-  var currentFitness: Double = 0.0,
+  var currentFitness: Double = Double.NaN,
   var doomedToDie: Boolean = false,
   var retainGenome: Boolean = false,
   var additionalParams: immutable.Map[String, Any] = immutable.Map[String, Any](),
   var tempParams: immutable.Map[String, Any] = immutable.Map[String, Any]()
 )
+
+object IndividualDescriptor {
+  implicit def ordering = Ordering.by[IndividualDescriptor, Double](_.currentFitness)
+}
 
 case class IndividualEvaluationPair(individual: ActorRef, evaluationAgent: ActorRef)
