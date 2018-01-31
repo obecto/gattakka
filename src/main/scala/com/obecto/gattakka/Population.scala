@@ -10,7 +10,6 @@ import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.{IntroducePopulation, PipelineFinished, RefreshPopulation, RunPipeline}
 
 import scala.collection.immutable
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
@@ -107,7 +106,7 @@ class Population(individualActorType: Class[_ <: Individual],
         val childrenSnapshotIndividuals = selectChildrenIndividuals(mustLiveSnapshotIndividuals)
         println("childGenomes are: " + s"${childrenSnapshotIndividuals.size}")
         val newIndividualDescriptors = hatchPopulation(childrenSnapshotIndividuals, evaluator)
-        currentIndividualDescriptors.++=:(newIndividualDescriptors)
+        currentIndividualDescriptors ++= newIndividualDescriptors
         publishPipelineResult()
         populationAge += 1
         println(s"Population aged one more year: $populationAge")

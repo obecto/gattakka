@@ -1,61 +1,30 @@
 package com.obecto.gattakka.genetics.operators
 
-import com.obecto.gattakka.genetics.{Chromosome, Genome}
-import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator, Population}
+import com.obecto.gattakka.genetics.{Chromosome}
+import com.obecto.gattakka.{PipelineOperator}
 
-import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
-trait BinaryMutationOperator extends MutationBaseOperator with PipelineOperator {
+trait BinaryMutationOperator extends PipelineOperator with ChromosomeMutationBaseOperator {
 
-  def rnd: Random = Random
+  def bitFlipChance: Double
 
-  def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
-
-    val (onlyElite, withoutElite) = snapshot partition {
-      _.tempParams.getOrElse("elite", false) != false
-    }
-
-    val withoutDoomedAndElite = withoutElite filter {
-      !_.doomedToDie
-    }
-
-    val mutatedIndividuals: ListBuffer[IndividualDescriptor] = ListBuffer.empty
-
-    withoutDoomedAndElite foreach {
-      individualDescriptor =>
-        val genome = individualDescriptor.genome
-        var genomeMutationOccured = false
-
-        val newChromosomes = genome.chromosomes map { chromosome =>
-
-          var chromosomeMutationOccured = false
-          val mutatedByteArray = chromosome.byteArray map { byte =>
-            var newByte = byte
-            for (i <- 0 to 8) {
-              val randomNum = rnd.nextFloat()
-              if (randomNum < mutationChance) {
-                chromosomeMutationOccured = true
-                newByte = (newByte ^ (1 << i)).toByte
-              }
-            }
-            newByte
-          }
-
-          if (chromosomeMutationOccured) {
-            genomeMutationOccured = true
-            new Chromosome(mutatedByteArray, chromosome.descriptor)
-          } else {
-            chromosome
-          }
+  def apply(chromosome: Chromosome): Chromosome = {
+    var chromosomeMutationOccured = false
+    val mutatedByteArray: Array[Byte] = for (byte <- chromosome.byteArray) yield {
+      var newByte = byte
+      for (i <- 0 to 8) {
+        if (rnd.nextFloat() < bitFlipChance) {
+          chromosomeMutationOccured = true
+          newByte = (newByte ^ (1 << i)).toByte
         }
-
-        if (genomeMutationOccured) {
-          individualDescriptor.doomedToDie = true
-          mutatedIndividuals += IndividualDescriptor(Population.getUniqueBotId, new Genome(newChromosomes), None)
-        }
+      }
+      newByte
     }
 
-    snapshot ++ mutatedIndividuals.toList
+    if (chromosomeMutationOccured) {
+      new Chromosome(mutatedByteArray, chromosome.descriptor)
+    } else {
+      chromosome
+    }
   }
 }
