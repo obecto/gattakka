@@ -13,7 +13,7 @@ object GeneGroupDescriptor {
 
 case class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor], tag: String = "") extends GeneDescriptor {
 
-  val length = geneDescriptors.foldLeft(0)(_ + _.length)
+  val length = geneDescriptors.foldLeft(0)(_ + _.byteLength * 8)
 
   def apply(rnd: scala.util.Random): GeneGroup = {
     new GeneGroup(geneDescriptors.map(_.apply(rnd).asInstanceOf[Gene]), this)
@@ -32,10 +32,10 @@ case class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor], tag: Strin
   }
 }
 
-case class GeneGroup(genes: List[Gene], descriptor: GeneDescriptor) extends Gene {
+case class GeneGroup(genes: List[Gene], descriptor: GeneGroupDescriptor) extends Gene {
   val value: List[Any] = genes.map(_.value)
 
   def toByteArray: Array[Byte] = {
-    genes.toVector.flatMap(gene => gene.toByteArray).toArray
+    genes.view.flatMap(gene => gene.toByteArray).toArray
   }
 }

@@ -9,12 +9,11 @@ object LongGeneDescriptor {
 }
 
 case class LongGeneDescriptor(val from: Long, val to: Long) extends GeneDescriptor {
-  val range: Long = to - from
-  val length: Int = (Math.log((range + 1).abs.toDouble) / Math.log(2)).ceil.toInt
-  val byteLength: Int = (length.toDouble / 8).ceil.toInt
+  val range: Long = to - from + 1
+  val length: Int = (Math.log((range).abs.toDouble) / Math.log(2)).ceil.toInt
 
   def apply(rnd: scala.util.Random): LongGene = {
-    new LongGene(BigInt(numbits = length, rnd = rnd).toLong % range + from, this)
+    new LongGene(rnd.nextLong() % range + from, this)
   }
 
   def apply(byteArray: Array[Byte]): LongGene = {

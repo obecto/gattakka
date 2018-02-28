@@ -9,7 +9,6 @@ object BigIntGeneDescriptor {
 }
 
 case class BigIntGeneDescriptor(val length: Int) extends GeneDescriptor {
-  val byteLength: Int = (length.toDouble / 8).ceil.toInt
   val maxValue: BigInt = (BigInt(1) << length) - 1
   val maxValueDouble: Double = maxValue.doubleValue
 

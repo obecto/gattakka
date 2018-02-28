@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.obecto.gattakka._
 import com.obecto.gattakka.genetics.operators
 import com.obecto.gattakka.genetics.{Genome}
-import com.obecto.gattakka.genetics.descriptors.{GeneGroupDescriptor, DoubleGeneDescriptor}
+import com.obecto.gattakka.genetics.descriptors.{MapGeneGroupDescriptor, DoubleGeneDescriptor}
 import com.obecto.gattakka.messages.individual.Initialize
 import com.obecto.gattakka.messages.population.RefreshPopulation
 
@@ -13,9 +13,9 @@ import scala.concurrent.duration._
 
 
 object Definitions {
-  val chromosomeDescriptor = GeneGroupDescriptor(
-    DoubleGeneDescriptor(-200, 200, 16),
-    DoubleGeneDescriptor(-200, 200, 16)
+  val chromosomeDescriptor = MapGeneGroupDescriptor(
+    "x" -> DoubleGeneDescriptor(-100, 100),
+    "y" -> DoubleGeneDescriptor(-100, 100),
   )
 }
 
@@ -23,9 +23,9 @@ class CustomEvaluationAgent extends EvaluationAgent {
 
   override def onSignalReceived(data: Any): Unit = data match {
     case genome: Genome =>
-      val values = genome.chromosomes.head.toGene.value.asInstanceOf[List[Double]]
-      val x = values(0)
-      val y = values(1)
+      val values = genome.chromosomes.head.toGene.value.asInstanceOf[Map[String, Double]]
+      val x = values("x")
+      val y = values("y")
       val temp1 = Math.sin(Math.sqrt(x * x + y * y))
       val temp2 = 1 + 0.001 * (x * x + y * y)
       fitness = (0.5 + (temp1 * temp1 - 0.5) / (temp2 * temp2)).toDouble

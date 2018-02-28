@@ -4,8 +4,11 @@ import com.obecto.gattakka.genetics.Chromosome
 import scala.util.Random
 
 trait GeneDescriptor {
-  /** Length of the produced genes in bits. Usually a multiple of 8. */
+  /** Length of the produced genes in **bits**. Usually a multiple of 8. */
   def length: Int
+
+  /** Length of the produced genes in whole **bytes**. Computed automatically from length. */
+  lazy val byteLength: Int = (length.toDouble / 8).ceil.toInt
 
   /** Returns a newly-generated gene according to the descriptor's specification. */
   def apply(rnd: Random = Random): Gene

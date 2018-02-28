@@ -9,9 +9,7 @@ object DoubleGeneDescriptor {
   }
 }
 
-case class DoubleGeneDescriptor(val from: Double, val to: Double, val resolution: Int = 8) extends GeneDescriptor {
-  def length = resolution
-  val byteLength: Int = (length.toDouble / 8).ceil.toInt
+case class DoubleGeneDescriptor(val from: Double, val to: Double, val length: Int = 8) extends GeneDescriptor {
   val range: Double = to - from
   val maxUnscaledBigInt = BigInt(1) << length
   val maxUnscaledDouble = maxUnscaledBigInt.toDouble
