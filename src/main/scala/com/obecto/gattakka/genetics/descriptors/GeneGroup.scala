@@ -22,8 +22,8 @@ case class GeneGroupDescriptor(geneDescriptors: List[GeneDescriptor], tag: Strin
   def apply(byteArray: Array[Byte]): GeneGroup = {
     var sliceStart = 0
     val genes = geneDescriptors.map({descriptor =>
-      val slice = byteArray.slice(sliceStart / 8, (sliceStart + descriptor.length) / 8)
-      sliceStart += descriptor.length
+      val slice = byteArray.slice(sliceStart, sliceStart + descriptor.byteLength)
+      sliceStart += descriptor.byteLength
 
       descriptor.apply(slice).asInstanceOf[Gene]
     })

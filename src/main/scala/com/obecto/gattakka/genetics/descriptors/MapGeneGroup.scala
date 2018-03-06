@@ -24,8 +24,8 @@ case class MapGeneGroupDescriptor(val geneDescriptors: Seq[Tuple2[Any, GeneDescr
     var sliceStart = 0
     val genes = geneDescriptors.map({field =>
       val descriptor = field._2
-      val slice = byteArray.slice(sliceStart / 8, (sliceStart + descriptor.length) / 8)
-      sliceStart += descriptor.length
+      val slice = byteArray.slice(sliceStart, sliceStart + descriptor.byteLength)
+      sliceStart += descriptor.byteLength
 
       descriptor.apply(slice)
     })

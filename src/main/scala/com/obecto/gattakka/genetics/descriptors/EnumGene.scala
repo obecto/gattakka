@@ -14,7 +14,8 @@ object EnumGeneDescriptor {
 }
 
 case class EnumGeneDescriptor[T](val values: Vector[T]) extends GeneDescriptor {
-  val length: Int = (Math.log((values.size + 1).abs.toDouble) / Math.log(2)).ceil.toInt
+  assert(values.size > 0)
+  val length: Int = (Math.log(values.size.toDouble) / Math.log(2)).ceil.toInt
 
   def apply(rnd: scala.util.Random): EnumGene[T] = {
     new EnumGene(rnd.nextInt(values.size), this)
