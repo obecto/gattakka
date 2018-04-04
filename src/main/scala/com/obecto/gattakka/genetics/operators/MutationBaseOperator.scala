@@ -1,7 +1,7 @@
 package com.obecto.gattakka.genetics.operators
 
 import com.obecto.gattakka.genetics.{Chromosome, Genome}
-import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator, Population}
+import com.obecto.gattakka.{IndividualDescriptor,IndividualState, PipelineOperator}
 import scala.collection.mutable.ListBuffer
 
 import scala.util.Random
@@ -16,22 +16,22 @@ trait MutationBaseOperator extends PipelineOperator {
 
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor] = {
 
-    val withoutDoomed = snapshot filterNot (_.doomedToDie)
+    val withoutDoomed = snapshot filter (_.state != IndividualState.DoomedToDie)
 
 
     val mutatedIndividuals: ListBuffer[IndividualDescriptor] = ListBuffer.empty
 
-    for (desc <- withoutDoomed) {
+    for (descriptor <- withoutDoomed) {
       if (rnd.nextFloat() < mutationChance) {
-        val genome = desc.genome
+        val genome = descriptor.genome
 
         val newGenome = apply(genome)
 
         if (newGenome != genome) {
-          if (killParent && desc.tempParams.getOrElse("elite", false) == false) {
-            desc.doomedToDie = true
+          if (killParent && descriptor.state != IndividualState.Elite) {
+            descriptor.state = IndividualState.DoomedToDie
           }
-          mutatedIndividuals += IndividualDescriptor(Population.getUniqueBotId, newGenome, None)
+          mutatedIndividuals += IndividualDescriptor(newGenome)
         }
       }
     }

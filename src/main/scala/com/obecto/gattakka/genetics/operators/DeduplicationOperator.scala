@@ -1,6 +1,6 @@
 package com.obecto.gattakka.genetics.operators
 
-import com.obecto.gattakka.{IndividualDescriptor, PipelineOperator}
+import com.obecto.gattakka.{IndividualDescriptor, IndividualState, PipelineOperator}
 import scala.collection.mutable.HashSet
 
 trait DeduplicationOperator extends PipelineOperator {
@@ -11,14 +11,14 @@ trait DeduplicationOperator extends PipelineOperator {
     var count = 0
     for (
       individual <- snapshot
-      if individual.tempParams.getOrElse("elite", false) == false && !individual.doomedToDie
+      if individual.state == IndividualState.Normal
     ) {
       val hashableGenome = individual.genome.chromosomes.map({ chromosome =>
         // new String(chromosome.byteArray)
         chromosome.byteArray.toVector
       })
       if (genomes(hashableGenome)) {
-        individual.doomedToDie = true
+        individual.state = IndividualState.DoomedToDie
         count += 1
       } else {
         genomes += hashableGenome

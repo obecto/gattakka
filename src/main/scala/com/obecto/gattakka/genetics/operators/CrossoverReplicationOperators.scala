@@ -6,8 +6,8 @@ import scala.collection.mutable.ArrayBuilder
 
 trait PointCrossoverReplicationOperator extends PipelineOperator with ChromosomeReplicationBaseOperator {
 
-  def parentCount: Int = 2
-  def childCount: Int = 2
+  final def parentCount: Int = 2
+  final def childCount: Int = 2
   def pointCount: Int
 
   def apply(parent1: Chromosome, parent2: Chromosome): List[Chromosome] = {
@@ -30,8 +30,8 @@ trait PointCrossoverReplicationOperator extends PipelineOperator with Chromosome
 
 trait UniformCrossoverReplicationOperator extends PipelineOperator with ChromosomeReplicationBaseOperator {
 
-  def parentCount: Int = 2
-  def childCount: Int = 2
+  final def parentCount: Int = 2
+  final def childCount: Int = 2
   def flipChance: Double = 0.5
 
   def apply(parent1: Chromosome, parent2: Chromosome): List[Chromosome] = {

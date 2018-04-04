@@ -1,30 +1,18 @@
 package com.obecto.gattakka
 
 import akka.actor.ActorRef
-import akka.event.{EventBus, LookupClassification}
-import com.obecto.gattakka.messages.eventbus.HandleEvent
+import akka.event.{EventBus, LookupClassification, ActorEventBus}
 
-class LookupBusImplementation extends EventBus with LookupClassification {
-  type Event = HandleEvent
-  type Classifier = String
-  type Subscriber = ActorRef
+class LookupBusImplementation(sendAs: ActorRef) extends EventBus with LookupClassification with ActorEventBus {
+  type Event = Any
+  type Classifier = Class[_]
 
+  override protected def classify(event: Event): Classifier = event.getClass()
 
-  // is used for extracting the classifier from the incoming events
-  override protected def classify(event: Event): Classifier = event.dataType
-
-  // will be invoked for each event for all subscribers which registered themselves
-  // for the event’s classifier
   override protected def publish(event: Event, subscriber: Subscriber): Unit = {
-    subscriber ! event.payload
+    subscriber.tell(event, sendAs)
   }
 
-  // must define a full order over the subscribers, expressed as expected from
-  // `java.lang.Comparable.compare`
-  override protected def compareSubscribers(a: Subscriber, b: Subscriber): Int = a.compareTo(b)
-
-  // determines the initial size of the index data structure
-  // used internally (i.e. the expected number of different classifiers)
-  override protected def mapSize: Int = 128
+  override protected def mapSize: Int = 16
 
 }

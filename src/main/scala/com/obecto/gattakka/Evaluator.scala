@@ -1,47 +1,45 @@
 package com.obecto.gattakka
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
-import com.obecto.gattakka.messages.evaluation.{GetEvaluationAgent, SpawnEvaluationAgent}
-import com.obecto.gattakka.messages.population.{IntroducePopulation, RefreshPopulation}
+import akka.actor.{Actor, ActorRef, Props}
+import com.obecto.gattakka.messages.evaluator._
+import com.obecto.gattakka.messages.individual.{FitnessProducedEvent}
+import com.obecto.gattakka.messages.population.{IntroducePopulation}
 
-import scala.concurrent.duration._
+import scala.collection.mutable.HashMap
 
+class Evaluator extends Actor {
 
-class Evaluator(evaluationAgentType: Class[_ <: EvaluationAgent], environmentalData: Any) extends Actor {
-
-  var populationActor: ActorRef = ActorRef.noSender
-
-   def receive: Receive = customReceive orElse {
-
-     case IntroducePopulation =>
-       populationActor = sender()
-
-     case GetEvaluationAgent(id: String) =>
-       sender() ! tryGetEvaluationAgent(id)
-
-     case SpawnEvaluationAgent(id: String) =>
-       sender() ! createEvaluationAgent(id)
-
-     case Terminated(ref) =>
-     //println("My child died :( " + ref.path.name)
-
-   }
+  var populationActor = ActorRef.noSender
+  val fitnesses = new HashMap[String, Double]()
 
   def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
+  def originalReceive: PartialFunction[Any, Unit] = {
+    case IntroducePopulation =>
+      populationActor = sender()
 
-  private def tryGetEvaluationAgent(id: String): Option[ActorRef] ={
-    context.child(id)
+    case RemoveFitness(id) =>
+      fitnesses -= id
+
+    case SetFitness(id, fitness) =>
+      fitnesses(id) = fitness
+
+    case FitnessProducedEvent(fitness) =>
+      val id = sender.path.name
+      self ! SetFitness(id, fitness)
+
+    case GetFitness(id) =>
+      sender() ! fitnesses(id)
+
+    case GetAllFitnesses =>
+      sender ! fitnesses.toMap
   }
+  def receive: Receive = customReceive orElse originalReceive
 
-   def createEvaluationAgent(id: String): ActorRef ={
-     val newEvaluationAgent = context.actorOf(Props(evaluationAgentType),id)
-     context.watch(newEvaluationAgent)
-     newEvaluationAgent
-   }
-
- }
+}
 
 object Evaluator {
 
-  def props(evaluationAgentType: Class[_ <: EvaluationAgent]): Props = Props(classOf[Evaluator], evaluationAgentType, "")
+  def props(customEvaluatorClass: Class[_]): Props = Props(customEvaluatorClass)
+  def props(): Props = Props(classOf[Evaluator])
+
 }

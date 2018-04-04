@@ -3,9 +3,9 @@ package com.obecto.gattakka
 import akka.actor.{Actor, Props}
 import com.obecto.gattakka.messages.population.RunPipeline
 
-import scala.collection.immutable
-
 class Pipeline(implicit val pipelineOperators: Seq[PipelineOperator]) extends Actor {
+
+  var age = 0
 
   def receive: Receive = {
     case RunPipeline(snapshot) =>
@@ -14,12 +14,8 @@ class Pipeline(implicit val pipelineOperators: Seq[PipelineOperator]) extends Ac
 
   def runPipeline(snapshot: List[IndividualDescriptor])(implicit pipelineOperators: Seq[PipelineOperator]): List[IndividualDescriptor] = {
     var processedSnapshot = snapshot
-    pipelineOperators foreach {
-      operator =>
-        processedSnapshot = operator.apply(processedSnapshot)
-    }
-    processedSnapshot foreach {
-      _.tempParams = immutable.Map[String, Any]()
+    for (operator <- pipelineOperators) {
+      processedSnapshot = operator.apply(processedSnapshot)
     }
     processedSnapshot
   }
@@ -32,8 +28,7 @@ object Pipeline {
 
 }
 
-
-trait PipelineOperator {
+abstract class PipelineOperator {
 
   def apply(snapshot: List[IndividualDescriptor]): List[IndividualDescriptor]
 

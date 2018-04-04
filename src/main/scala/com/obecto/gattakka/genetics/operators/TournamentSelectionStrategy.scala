@@ -9,7 +9,7 @@ class TournamentSelectionStrategy(tournamentSize: Int, rnd: scala.util.Random = 
 
     List.fill(tournamentSize) {
       from(rnd.nextInt(amount))
-    }.maxBy(_.currentFitness)
+    }.maxBy(_.fitness)
   }
 
   def selectWorst(from: Seq[IndividualDescriptor]): IndividualDescriptor = {
@@ -17,7 +17,7 @@ class TournamentSelectionStrategy(tournamentSize: Int, rnd: scala.util.Random = 
 
     List.fill(tournamentSize) {
       from(rnd.nextInt(amount))
-    }.minBy(_.currentFitness)
+    }.minBy(_.fitness)
   }
 
 }

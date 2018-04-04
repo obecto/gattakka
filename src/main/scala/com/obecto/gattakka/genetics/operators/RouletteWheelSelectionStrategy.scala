@@ -20,16 +20,16 @@ class RouletteWheelSelectionStrategy(rng: scala.util.Random = scala.util.Random)
     var minFitness = Double.MaxValue
     var maxFitness = Double.MinValue
     var size = 0
-    for (desc <- from) {
-      minFitness = math.min(minFitness, desc.currentFitness)
-      maxFitness = math.max(maxFitness, desc.currentFitness)
+    for (descriptor <- from) {
+      minFitness = math.min(minFitness, descriptor.fitness)
+      maxFitness = math.max(maxFitness, descriptor.fitness)
       size += 1
     }
     val randomLimit = rng.nextFloat()
     var reached = 0.0
 
-    from find { desc =>
-      reached += normalizer(desc.currentFitness, minFitness, maxFitness, size)
+    from find { descriptor =>
+      reached += normalizer(descriptor.fitness, minFitness, maxFitness, size)
       reached >= randomLimit
     } getOrElse from.head
   }

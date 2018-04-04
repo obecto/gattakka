@@ -2,11 +2,12 @@ package com.obecto.gattakka
 
 import akka.actor.Actor
 import com.obecto.gattakka.genetics.Genome
-import com.obecto.gattakka.messages.eventbus.{AddSubscriber, HandleEvent}
+import com.obecto.gattakka.messages.individual._
+import com.obecto.gattakka.messages.eventbus.{AddSubscriber}
 
 abstract class Individual(chromosome: Genome) extends Actor {
 
-  val lookupBusImpl = new LookupBusImplementation
+  val lookupBusImpl = new LookupBusImplementation(self)
 
   def receive = customReceive orElse {
 
@@ -14,13 +15,12 @@ abstract class Individual(chromosome: Genome) extends Actor {
       lookupBusImpl.subscribe(subscriber, classification)
 
 
-    case x => println("Couldn't understand what to do with... "); print(_)
+    case x => println("Couldn't understand what to do with... "); print(x)
   }
 
   def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
 
-  //TODO remove hardcoded strings
-  def dispatchEvent(payload: Any): Unit = {
-    lookupBusImpl.publish(HandleEvent("individual_signal", payload))
+  def dispatchFitness(fitness: Double): Unit = {
+    lookupBusImpl.publish(FitnessProducedEvent(fitness))
   }
 }

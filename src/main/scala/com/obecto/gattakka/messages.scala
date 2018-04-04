@@ -5,39 +5,28 @@ import akka.actor.ActorRef
 object messages {
 
   object population {
-
-    case class ReceiveSignal(data: AnyVal)
-
     case class RunPipeline(snapshot: List[IndividualDescriptor])
-
     case class RefreshPopulation(queue: Boolean = true)
-
-    case object PipelineFinished
-
     case object IntroducePopulation
 
+    case class PipelineFinishedEvent(populationSize: Int, newIndividualsSize: Int)
   }
 
   object individual {
-
     case class Initialize(environmentalData: Any)
 
+    case class FitnessProducedEvent(fitness: Double)
   }
 
-  object evaluation {
-
-    case object GetFitness
-    case class GetEvaluationAgent(id: String)
-    case class SpawnEvaluationAgent(id: String)
-    case object KillEvaluationAgent
+  object evaluator {
+    case class SetFitness(id: String, fitness: Double)
+    case class RemoveFitness(id: String)
+    case class GetFitness(id: String)
+    case object GetAllFitnesses
   }
 
   object eventbus {
-
-    case class AddSubscriber(subscriber: ActorRef, classification: String)
-
-    case class HandleEvent(dataType: String, payload: Any)
-
+    case class AddSubscriber(subscriber: ActorRef, classification: Class[_])
   }
 
 }
