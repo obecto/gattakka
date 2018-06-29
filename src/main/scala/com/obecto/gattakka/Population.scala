@@ -24,11 +24,11 @@ object Population {
 }
 
 class Population(
-    individualActorType: Class[_ <: Individual],
-    initialGenomes: List[Genome],
-    evaluator: ActorRef,
-    pipelineActor: ActorRef,
-    environmentalData: Any = null)
+                  individualActorType: Class[_ <: Individual],
+                  initialGenomes: List[Genome],
+                  evaluator: ActorRef,
+                  pipelineActor: ActorRef,
+                  environmentalData: Any = null)
   extends Actor {
 
   case class IndividualData(genome: Genome, individualRef: ActorRef) {
@@ -37,6 +37,7 @@ class Population(
 
 
   implicit val timeout = Config.REQUEST_TIMEOUT
+
   import context.dispatcher
 
   private var pipelineRefreshesQueued = 0
@@ -52,6 +53,7 @@ class Population(
 
 
   def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
+
   def receive: Receive = customReceive orElse {
 
     case AddSubscriber(subscriber, classification) =>
@@ -80,7 +82,9 @@ class Population(
 
   protected def hatchPopulation(descriptors: List[IndividualDescriptor]) = {
     for (descriptor <- descriptors) yield {
-      val id = descriptor.id getOrElse { generateUniqueId() }
+      val id = descriptor.id getOrElse {
+        generateUniqueId()
+      }
 
       if (!currentIndividualData.contains(id)) {
         val individual = spawnIndividual(id, descriptor.genome)
@@ -117,11 +121,13 @@ class Population(
 
       val newIndividuals = nonDoomedIndividuals.filter(_.id == None)
       println(s"Got ${newIndividuals.size} new individuals")
+      val newPopulationDiversity = calculateDiversityPercentage(newIndividuals)
 
       hatchPopulation(newIndividuals)
 
       populationAge += 1
       println(s"Population aged one more year: $populationAge")
+      println(f"Diversity: $newPopulationDiversity%.2f%% \n")
 
       lookupBusImpl.publish(PipelineFinishedEvent(currentIndividualData.size, newIndividuals.size))
 
@@ -151,8 +157,23 @@ class Population(
   }
 
   private def generateUniqueId(): String = {
-    individualCounterId +=1
+    individualCounterId += 1
     individualCounterId.toString
+  }
+
+  private def calculateDiversityPercentage(population: List[IndividualDescriptor]): Double = {
+    val population_combinations = population.combinations(2)
+    var population_combinations_length = 0
+    var differenceSum: Double = 0.0
+
+    while (population_combinations.hasNext) {
+      population_combinations_length += 1
+      val nextTuple = population_combinations.next()
+      val difference = nextTuple(0).genome.diversity(nextTuple(1).genome)
+      differenceSum += difference
+    }
+
+    differenceSum / population_combinations_length
   }
 
 }
