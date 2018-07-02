@@ -13,7 +13,7 @@ case class Genome(chromosomes: List[Chromosome]) {
     if (this.chromosomes.length != genome.chromosomes.length) {
       val maxLengthList = max(this.chromosomes.length, genome.chromosomes.length)
       val differentChromosomesCount = maxLengthList - chromosomeTuples.length
-      (chromosomeDiversitySum + differentChromosomesCount * 100) / maxLengthList
+      (chromosomeDiversitySum + differentChromosomesCount) / maxLengthList
     } else {
       chromosomeDiversitySum / chromosomeTuples.length
     }

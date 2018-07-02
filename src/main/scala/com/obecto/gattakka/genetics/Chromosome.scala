@@ -1,6 +1,5 @@
 package com.obecto.gattakka.genetics
 
-import scala.math.{max}
 import com.obecto.gattakka.genetics.descriptors.{GeneDescriptor, Gene}
 
 case class Chromosome(byteArray: Array[Byte], descriptor: GeneDescriptor) {
@@ -9,12 +8,8 @@ case class Chromosome(byteArray: Array[Byte], descriptor: GeneDescriptor) {
   def toGene: Gene = descriptor.apply(byteArray)
 
   def diversity(chromosome: Chromosome): Double = {
-    if (this.byteArray.length == 0 && chromosome.byteArray.length == 0) {
-      //they are same, because they are both empty
-      100
-    } else if (this.byteArray.length == 0 || chromosome.byteArray.length == 0) {
-      //they are different, because one of the chromosomes is empty
-      0
+    if (this.descriptor.getClass != chromosome.descriptor.getClass) {
+      1
     } else {
       val geneTuples = this.byteArray.zip(chromosome.byteArray)
 
@@ -23,19 +18,13 @@ case class Chromosome(byteArray: Array[Byte], descriptor: GeneDescriptor) {
         percentageOfBitsSet(xorNum)
       }).sum
 
-      if (this.byteArray.length != chromosome.byteArray.length) {
-        val maxLengthList = max(this.byteArray.length, chromosome.byteArray.length)
-        val differentGenesCount = maxLengthList - geneTuples.length
-        (geneDiversitySum + differentGenesCount * 100) / maxLengthList
-      } else {
-        geneDiversitySum / geneTuples.length
-      }
+      geneDiversitySum / geneTuples.length
     }
   }
 
   private def percentageOfBitsSet(num: Byte): Double = {
     val sumOfSetBits: Int = (0 to 7).map((i: Int) => (num >>> i) & 1).sum
-    val percentageOfSetBits: Double = sumOfSetBits.toDouble / 8 * 100
+    val percentageOfSetBits: Double = sumOfSetBits.toDouble / 8
     percentageOfSetBits
   }
 

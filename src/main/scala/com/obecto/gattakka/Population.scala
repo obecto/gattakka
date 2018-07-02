@@ -121,13 +121,11 @@ class Population(
 
       val newIndividuals = nonDoomedIndividuals.filter(_.id == None)
       println(s"Got ${newIndividuals.size} new individuals")
-      val newPopulationDiversity = calculateDiversityPercentage(newIndividuals)
 
       hatchPopulation(newIndividuals)
 
       populationAge += 1
       println(s"Population aged one more year: $populationAge")
-      println(f"Diversity: $newPopulationDiversity%.2f%% \n")
 
       lookupBusImpl.publish(PipelineFinishedEvent(currentIndividualData.size, newIndividuals.size))
 
@@ -160,20 +158,4 @@ class Population(
     individualCounterId += 1
     individualCounterId.toString
   }
-
-  private def calculateDiversityPercentage(population: List[IndividualDescriptor]): Double = {
-    val population_combinations = population.combinations(2)
-    var population_combinations_length = 0
-    var differenceSum: Double = 0.0
-
-    while (population_combinations.hasNext) {
-      population_combinations_length += 1
-      val nextTuple = population_combinations.next()
-      val difference = nextTuple(0).genome.diversity(nextTuple(1).genome)
-      differenceSum += difference
-    }
-
-    differenceSum / population_combinations_length
-  }
-
 }

@@ -100,7 +100,7 @@ object RunGattakka extends App {
       val bitFlipChance = 2.0 / 16
     },
     new DeduplicationOperator {},
-    new LimitSizeOperator {
+    new DiversitySelectionOperator {
       val targetPopulationSize = 50
     },
   )
