@@ -14,11 +14,11 @@ trait DiversitySelectionOperator extends PipelineOperator {
       for (individual <- nonElites) {
         var diversity: Double = 0
         for (elite <- elites) {
-          diversity = diversity + individual.genome.diversity(elite.genome)
+          diversity += individual.genome.diversity(elite.genome)
         }
 
         for (nonElite <- nonElites if nonElite != individual) {
-          diversity = diversity + individual.genome.diversity(nonElite.genome)
+          diversity += individual.genome.diversity(nonElite.genome)
         }
 
         individual.tempParams("diversity") = diversity / (elites.size + nonElites.size)
