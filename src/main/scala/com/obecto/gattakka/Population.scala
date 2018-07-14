@@ -24,11 +24,11 @@ object Population {
 }
 
 class Population(
-    individualActorType: Class[_ <: Individual],
-    initialGenomes: List[Genome],
-    evaluator: ActorRef,
-    pipelineActor: ActorRef,
-    environmentalData: Any = null)
+                  individualActorType: Class[_ <: Individual],
+                  initialGenomes: List[Genome],
+                  evaluator: ActorRef,
+                  pipelineActor: ActorRef,
+                  environmentalData: Any = null)
   extends Actor {
 
   case class IndividualData(genome: Genome, individualRef: ActorRef) {
@@ -37,6 +37,7 @@ class Population(
 
 
   implicit val timeout = Config.REQUEST_TIMEOUT
+
   import context.dispatcher
 
   private var pipelineRefreshesQueued = 0
@@ -52,6 +53,7 @@ class Population(
 
 
   def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
+
   def receive: Receive = customReceive orElse {
 
     case AddSubscriber(subscriber, classification) =>
@@ -80,7 +82,9 @@ class Population(
 
   protected def hatchPopulation(descriptors: List[IndividualDescriptor]) = {
     for (descriptor <- descriptors) yield {
-      val id = descriptor.id getOrElse { generateUniqueId() }
+      val id = descriptor.id getOrElse {
+        generateUniqueId()
+      }
 
       if (!currentIndividualData.contains(id)) {
         val individual = spawnIndividual(id, descriptor.genome)
@@ -151,8 +155,7 @@ class Population(
   }
 
   private def generateUniqueId(): String = {
-    individualCounterId +=1
+    individualCounterId += 1
     individualCounterId.toString
   }
-
 }
