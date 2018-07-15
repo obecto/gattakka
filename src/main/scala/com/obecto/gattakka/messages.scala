@@ -14,8 +14,8 @@ object messages {
 
   object individual {
     case class Initialize(environmentalData: Any)
-
     case class FitnessProducedEvent(fitness: Double)
+    case class ProcessStartedEvent()
   }
 
   object evaluator {
