@@ -21,10 +21,11 @@ trait ReplicationBaseOperator extends PipelineOperator {
     var filteredParents = withoutDoomed
 
     // while (rnd.nextFloat() < 1 - math.pow(1 - replicationChance, filteredParents.size.toDouble)) {
-    for (i <- 0 to (withoutDoomed.size * replicationChance / parentCount + rnd.nextFloat()).round.toInt) {
-      val parents = for (i <- 0 to parentCount) yield {
+    val y = (withoutDoomed.size * replicationChance / parentCount + rnd.nextFloat()).round.toInt
+    for (i <- 0 to y - 1) {
+      val parents = for (i <- 0 to parentCount - 1) yield {
         val parent = parentSelectionStrategy.selectBest(filteredParents)
-        filteredParents = filteredParents filterNot (_ equals parent)
+        filteredParents = if (filteredParents.size > 1) (filteredParents filterNot (_ equals parent)) else withoutDoomed
         parent
       }
 
@@ -36,8 +37,10 @@ trait ReplicationBaseOperator extends PipelineOperator {
 
       createdIndividuals ++= childrenGenomes.map(IndividualDescriptor(_))
     }
-
-    snapshot ++ createdIndividuals
+    println(s"New sindividuals size: ${createdIndividuals.size}")
+    val x = snapshot ++ createdIndividuals
+    println(s"New snapshot size: ${x.size}")
+    x
   }
 
 }
