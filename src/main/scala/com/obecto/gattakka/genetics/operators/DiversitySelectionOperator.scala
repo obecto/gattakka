@@ -29,6 +29,12 @@ trait DiversitySelectionOperator extends PipelineOperator {
         .take(sizeToDoom).map(_.state = IndividualState.DoomedToDie)
     }
 
+    val elitesCount = snapshot.filter(_.state == IndividualState.Elite).size
+    val nonElitesCount = snapshot.filter(_.state == IndividualState.Normal).size
+    val toDoomCount = snapshot.filter(_.state == IndividualState.DoomedToDie).size
+    println("Diversity Selection")
+    println(s"elites: $elitesCount | nonElites: $nonElitesCount | doomedToDie: $toDoomCount")
+
     snapshot
   }
 

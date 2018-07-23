@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorRef, PoisonPill, Props, Terminated}
 import akka.pattern._
 import com.obecto.gattakka.genetics.Genome
 import com.obecto.gattakka.messages.evaluator.{GetAllFitnesses, RemoveFitness}
-import com.obecto.gattakka.messages.eventbus.{AddSubscriber}
-import com.obecto.gattakka.messages.individual.{Initialize, FitnessProducedEvent}
+import com.obecto.gattakka.messages.eventbus.AddSubscriber
+import com.obecto.gattakka.messages.individual.{FitnessProducedEvent, Initialize, ProcessStartedEvent}
 import com.obecto.gattakka.messages.population._
 
 import scala.collection.mutable.HashMap
@@ -91,6 +91,7 @@ class Population(
         // val evaluationAgent = spawnEvaluationAgent(individual)
         // individual ! AddSubscriber(evaluationAgent, "individual_signal")
         individual ! Initialize(environmentalData)
+        evaluator ! ProcessStartedEvent
 
         currentIndividualData(id) = IndividualData(descriptor.genome, individual)
       }
