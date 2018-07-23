@@ -22,7 +22,7 @@ case class LongGeneDescriptor(val from: Long, val to: Long) extends GeneDescript
   }
 
   def apply(value: Long): LongGene = {
-    val normalizedValue = (value  - from) % range
+    val normalizedValue = (value  - from) % range + from
     new LongGene(normalizedValue, this)
   }
 }
