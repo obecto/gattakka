@@ -10,6 +10,7 @@ object messages {
     case object IntroducePopulation
 
     case class PipelineFinishedEvent(populationSize: Int, newIndividualsSize: Int)
+    case object GetCurrentPopulation
   }
 
   object individual {

@@ -73,6 +73,9 @@ class Population(
           println(s"Pipeline is already running (queued ${pipelineRefreshesQueued} times)")
         }
       }
+    
+    case GetCurrentPopulation =>
+      sender ! getCurrentPopulation()
 
     case Terminated(ref) =>
       val id = ref.path.name
@@ -80,7 +83,12 @@ class Population(
       currentIndividualData.remove(id) // Individual dies, so we don't really care about him anymore
   }
 
+  protected def getCurrentPopulation(): List[Genome] = {
+    currentIndividualData.map{case(id,data) => data.genome} toList
+  }
+
   protected def hatchPopulation(descriptors: List[IndividualDescriptor]) = {
+
     for (descriptor <- descriptors) yield {
       val id = descriptor.id getOrElse {
         generateUniqueId()

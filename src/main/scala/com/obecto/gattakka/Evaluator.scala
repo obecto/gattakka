@@ -15,7 +15,6 @@ class Evaluator extends Actor {
   def customReceive: PartialFunction[Any, Unit] = PartialFunction.empty[Any, Unit]
   def originalReceive: PartialFunction[Any, Unit] = {
     case IntroducePopulation =>
-      println("IntroducePopulation")
       populationActor = sender()
 
     case RemoveFitness(id) =>
