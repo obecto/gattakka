@@ -25,7 +25,7 @@ case class DoubleGeneDescriptor(val from: Double, val to: Double, val length: In
   }
 
   def apply(value: Double): DoubleGene = {
-    val normalizedValue = (value  - from) % range
+    val normalizedValue = (value  - from) % range + from
     new DoubleGene(normalizedValue, this)
   }
 }
