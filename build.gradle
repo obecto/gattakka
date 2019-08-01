@@ -1,6 +1,10 @@
 plugins {
     id 'scala'
+    id 'maven-publish'
 }
+
+version '1.0.0'
+group 'com.obecto'
 
 repositories {
     mavenCentral()
@@ -9,4 +13,27 @@ repositories {
 dependencies {
     compile group: 'org.scala-lang', name: 'scala-library', version: scala_version
     compile group: 'com.typesafe.akka', name: 'akka-actor_2.12', version: akka_version
+}
+
+jar {
+    manifest {
+        
+    }
+ 
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId 'gattakka'
+            from components.java
+            // artifact jar
+            // afterEvaluate {
+            //     artifactId = jar.archiveBaseName
+            // }
+        }
+    }
 }
